@@ -2,6 +2,8 @@ package main
 
 import (
 	"fmt"
+	"path/filepath"
+	"runtime"
 	"time"
 
 	G "gorgonia.org/gorgonia"
@@ -32,7 +34,18 @@ func main() {
 	}
 	model.Print()
 
-	imgf32, err := GetFloat32Image("data/dog_416x416.jpg", imgWidth, imgHeight)
+	// Get the absolute path of the current file and append the image filename to it.
+	// This ensures the image is loaded relative to the source file location and not
+	// relative to the current working directory when you run `go run .` outside
+	// the project directory.
+	_, currentFile, _, ok := runtime.Caller(0)
+	if !ok {
+		fmt.Println("Unable to determine current file path")
+		return
+	}
+	imagePath := filepath.Join(filepath.Dir(currentFile), "data", "dog_416x416.jpg")
+
+	imgf32, err := GetFloat32Image(imagePath, imgWidth, imgHeight)
 	if err != nil {
 		fmt.Printf("Can't read []float32 from image due the error: %s\n", err.Error())
 		return
