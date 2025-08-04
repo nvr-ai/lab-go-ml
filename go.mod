@@ -6,7 +6,6 @@ require (
 	github.com/chewxy/math32 v1.11.1
 	github.com/pkg/errors v0.9.1
 	github.com/stretchr/testify v1.7.0
-	github.com/yalue/onnxruntime_go v1.21.0
 	gocv.io/x/gocv v0.42.0
 	gorgonia.org/gorgonia v0.9.18
 	gorgonia.org/tensor v0.9.24

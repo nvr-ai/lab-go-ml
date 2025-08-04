@@ -16,6 +16,6 @@ func TestLoadDirectoryImages(t *testing.T) {
 
 	for _, image := range images {
 		assert.Greater(t, len(image.Data), 5000)
-		t.Logf("path=%s,frame=%d/%d,size=%d bytes\n", image.Path, image.Frame, images[len(images)-1].Frame, len(image.Data))
+		// t.Logf("path=%s,frame=%d/%d,size=%d bytes\n", image.Path, image.Frame, images[len(images)-1].Frame, len(image.Data))
 	}
 }

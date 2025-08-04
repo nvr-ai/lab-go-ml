@@ -131,10 +131,10 @@ func main() {
 		}
 
 		// Process motion state.
-		reportMotion, status, statusColor := detector.Process(motionDetected, maxArea)
+		reportMotion, status := detector.Process(motionDetected, maxArea)
 
 		// Update FPS.
-		detector.UpdateFPS(motionDetected)
+		detector.FPS(motionDetected)
 
 		// Record frame processing time.
 		detector.FrameProcessingTime = time.Since(frameStart)
@@ -145,7 +145,7 @@ func main() {
 			// Draw all significant contours.
 			for i := 0; i < contours.Size(); i++ {
 				if gocv.ContourArea(contours.At(i)) >= detector.MinimumArea {
-					gocv.DrawContours(&img, contours, i, statusColor, 2)
+					gocv.DrawContours(&img, contours, i, color.RGBA{0, 0, 255, 0}, 2)
 					rect := gocv.BoundingRect(contours.At(i))
 					gocv.Rectangle(&img, rect, color.RGBA{0, 0, 255, 0}, 2)
 				}
@@ -159,7 +159,7 @@ func main() {
 		}
 
 		// Draw status information
-		gocv.PutText(&img, status, image.Pt(10, 30), gocv.FontHersheyPlain, 1.2, statusColor, 2)
+		gocv.PutText(&img, status, image.Pt(10, 30), gocv.FontHersheyPlain, 1.2, color.RGBA{0, 0, 255, 0}, 2)
 
 		// Draw FPS information
 		fpsText := fmt.Sprintf("FPS: %.1f | Motion FPS: %.1f", detector.CurrentFPS, detector.MotionFPS)

@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"runtime"
-	"strings"
 	"sync"
 	"time"
 )
@@ -344,9 +343,7 @@ func (rp *RuntimeProfiler) emitStatusReport() {
 
 	uptime := time.Since(rp.startTime)
 
-	fmt.Printf("\n" + strings.Repeat("=", 80) + "\n")
 	fmt.Printf("RUNTIME PROFILER STATUS REPORT - %s\n", time.Now().Format("15:04:05.000"))
-	fmt.Printf(strings.Repeat("=", 80) + "\n")
 	fmt.Printf("Uptime: %v\n", uptime.Truncate(time.Millisecond))
 
 	// System metrics
@@ -398,8 +395,6 @@ func (rp *RuntimeProfiler) emitStatusReport() {
 			}
 		}
 	}
-
-	fmt.Printf(strings.Repeat("=", 80) + "\n")
 }
 
 // formatBytes formats byte counts in human-readable format.

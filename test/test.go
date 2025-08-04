@@ -327,8 +327,32 @@ func (r *TestRunner) runBenchmarks() error {
 		name string
 		fn   func(*testing.B)
 	}{
+		// Original benchmarks
 		{"BenchmarkSubtractBackground", BenchmarkSubtractBackground},
 		{"BenchmarkFullPipeline", BenchmarkFullPipeline},
+		
+		// Motion Detection Component Benchmarks
+		{"BenchmarkMotionDetectorProcess", BenchmarkMotionDetectorProcess},
+		{"BenchmarkMotionDetectorFPS", BenchmarkMotionDetectorFPS},
+		{"BenchmarkMotionDetectorMetrics", BenchmarkMotionDetectorMetrics},
+		
+		// Motion Segmentation Component Benchmarks
+		{"BenchmarkApplyThreshold", BenchmarkApplyThreshold},
+		{"BenchmarkFillGaps", BenchmarkFillGaps},
+		{"BenchmarkDetectContours", BenchmarkDetectContours},
+		
+		// Integration and Advanced Benchmarks
+		{"BenchmarkIntegratedMotionDetection", BenchmarkIntegratedMotionDetection},
+		{"BenchmarkMemoryAllocation", BenchmarkMemoryAllocation},
+		{"BenchmarkConcurrentProcessing", BenchmarkConcurrentProcessing},
+		
+		// Stress and Edge Case Benchmarks
+		{"BenchmarkLongRunningDetection", BenchmarkLongRunningDetection},
+		{"BenchmarkHighMotionScenario", BenchmarkHighMotionScenario},
+		{"BenchmarkNoiseResilience", BenchmarkNoiseResilience},
+		{"BenchmarkRapidSceneChanges", BenchmarkRapidSceneChanges},
+		{"BenchmarkProfilerOverhead", BenchmarkProfilerOverhead},
+		{"BenchmarkEdgeCaseFrames", BenchmarkEdgeCaseFrames},
 	}
 
 	benchStore := NewTestResultStore(r.benchmarkDir)
