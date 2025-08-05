@@ -1,0 +1,30 @@
+#!/usr/bin/env bash
+
+git clone --recursive https://github.com/microsoft/onnxruntime --depth 1
+
+./build.sh \
+  --config Release \
+  --build_shared_lib \
+  --use_coreml \
+  --cmake_extra_defines CMAKE_OSX_ARCHITECTURES=arm64
+
+./build.sh --config Release \
+  --parallel \
+  --compile_no_warning_as_error \
+  --skip_submodule_sync \
+  --osx_arch "arm64" \
+  --use_coreml \
+  --build_wheel \
+  --wheel_name_suffix="-silicon" \
+  --skip_tests
+
+./build.sh --config Release \
+  --parallel \
+  --compile_no_warning_as_error \
+  --skip_submodule_sync \
+  --build_wheel \
+  --skip_tests
+mkdir -p ../third_party
+cp build/MacOS/Release/onnxruntime.dylib ../third_party/onnxruntime_arm64.dylib
+
+rm -rf onnxruntime

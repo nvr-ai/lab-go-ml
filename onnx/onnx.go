@@ -8,9 +8,10 @@ import (
 	"sort"
 	"sync"
 
+	ort "github.com/yalue/onnxruntime_go"
+
 	"gocv.io/x/gocv"
 )
-
 
 // Detection represents a detected object
 type Detection struct {
@@ -18,6 +19,12 @@ type Detection struct {
 	Score     float32
 	ClassID   int
 	ClassName string
+}
+
+type Session struct {
+	Session *ort.AdvancedSession
+	Input   *ort.Tensor[float32]
+	Output  *ort.Tensor[float32]
 }
 
 // ONNXDetector handles ONNX model inference using gocv.ReadNet()
@@ -33,28 +40,70 @@ type ONNXDetector struct {
 	outputNames         []string
 }
 
-
-// NewONNXDetector creates a new ONNX detector
-func NewONNXDetector(config Config) (*ONNXDetector, error) {
-	detector := & ONNXDetector{
-		modelPath:           config.ModelPath,
-		inputShape:          config.InputShape,
-		confidenceThreshold: config.ConfidenceThreshold,
-		nmsThreshold:        config.NMSThreshold,
-		relevantClasses:     make(map[string]bool),
+// NewSession creates a new ONNX detector
+func NewSession(config Config) (*Session, error) {
+	// Check if ONNX Runtime should be disabled
+	if config.DisableONNXRuntime {
+		return nil, fmt.Errorf("ONNX Runtime is disabled - library not available on this platform")
 	}
 
-	// Set up relevant classes
-	for _, className := range config.RelevantClasses {
-		detector.relevantClasses[className] = true
+	// Check if the shared library exists before trying to use it
+	libPath := getSharedLibPath()
+	if _, err := os.Stat(libPath); os.IsNotExist(err) {
+		return nil, fmt.Errorf("ONNX Runtime library not found at %s. On macOS ARM64, you need to build ONNX Runtime from source or disable ONNX Runtime. Error: %w", libPath, err)
 	}
 
-	// Initialize ONNX runtime
-	if err := detector.initialize(); err != nil {
-		return nil, fmt.Errorf("failed to initialize ONNX detector: %w", err)
+	ort.SetSharedLibraryPath(libPath)
+	err := ort.InitializeEnvironment()
+	if err != nil {
+		return nil, fmt.Errorf("Error initializing ORT environment: %w", err)
 	}
 
-	return detector, nil
+	inputShape := ort.NewShape(1, 3, 640, 640)
+	inputTensor, err := ort.NewEmptyTensor[float32](inputShape)
+	if err != nil {
+		return nil, fmt.Errorf("Error creating input tensor: %w", err)
+	}
+	outputShape := ort.NewShape(1, 84, 8400)
+	outputTensor, err := ort.NewEmptyTensor[float32](outputShape)
+	if err != nil {
+		inputTensor.Destroy()
+		return nil, fmt.Errorf("Error creating output tensor: %w", err)
+	}
+	options, err := ort.NewSessionOptions()
+	if err != nil {
+		inputTensor.Destroy()
+		outputTensor.Destroy()
+		return nil, fmt.Errorf("Error creating ORT session options: %w", err)
+	}
+	defer options.Destroy()
+
+	// If CoreML is enabled, append the CoreML execution provider
+	if config.UseCoreML {
+		err = options.AppendExecutionProviderCoreML(0)
+		if err != nil {
+			inputTensor.Destroy()
+			outputTensor.Destroy()
+			return nil, fmt.Errorf("Error enabling CoreML: %w", err)
+		}
+	}
+
+	session, err := ort.NewAdvancedSession(config.ModelPath,
+		[]string{"images"}, []string{"output0"},
+		[]ort.ArbitraryTensor{inputTensor},
+		[]ort.ArbitraryTensor{outputTensor},
+		options)
+	if err != nil {
+		inputTensor.Destroy()
+		outputTensor.Destroy()
+		return nil, fmt.Errorf("Error creating ORT session: %w", err)
+	}
+
+	return &Session{
+		Session: session,
+		Input:   inputTensor,
+		Output:  outputTensor,
+	}, nil
 }
 
 // initialize sets up the ONNX runtime environment using gocv.ReadNet()

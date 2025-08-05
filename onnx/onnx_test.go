@@ -3,6 +3,7 @@ package onnx
 import (
 	"fmt"
 	"image"
+	"strings"
 	"testing"
 
 	"github.com/nvr-ai/go-ml/util"
@@ -12,19 +13,25 @@ import (
 func TestNewONNXDetector(t *testing.T) {
 	var err error
 
-	objectDetector, err := NewONNXDetector(Config{
-		ModelPath:           "../yolov3u.onnx",
+	objectDetector, err := NewSession(Config{
+		ModelPath:           "../data/yolov8n.onnx",
 		InputShape:          image.Point{X: 416, Y: 416},
 		ConfidenceThreshold: 0.5,
 		NMSThreshold:        0.5,
 		RelevantClasses:     []string{"person", "car", "truck", "bus", "motorcycle", "bicycle"},
 	})
+	if err != nil {
+		// Check if it's a library not found error
+		if strings.Contains(err.Error(), "ONNX Runtime library not found") {
+			t.Skipf("Skipping ONNX Runtime test - library not available: %v", err)
+			return
+		}
+		t.Fatalf("Failed to create ONNX detector: %v", err)
+	}
 
-	assert.NoErrorf(t, err, "Failed to create ONNX detector: %v", err)
+	fmt.Printf("ONNX Detector initialized with model: %+v\n", objectDetector.Session)
 
-	fmt.Printf("ONNX Detector initialized with model: %s\n", objectDetector.modelPath)
-
-	images, err := util.LoadDirectoryImageFiles("/corpus/images/videos/freeway-view-22-seconds-1080p.mp4")
+	images, err := util.LoadDirectoryImageFiles("../../../ml/corpus/images/videos/freeway-view-22-seconds-1080p.mp4")
 	if err != nil {
 		t.Fatalf("Failed to load images: %v", err)
 	}
@@ -32,5 +39,4 @@ func TestNewONNXDetector(t *testing.T) {
 	assert.NoErrorf(t, err, "Failed to load images: %v", err)
 
 	fmt.Printf("Loaded %d images for testing\n", len(images))
-
 }

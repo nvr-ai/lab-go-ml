@@ -86,7 +86,7 @@ func main() {
 	var objectDetector *onnx.ONNXDetector
 	if enableObjectDetection {
 		var err error
-		objectDetector, err = onnx.NewONNXDetector(onnx.Config{
+		objectDetector, err = onnx.NewSession(onnx.Config{
 			ModelPath:           onnxModelPath,
 			InputShape:          image.Point{X: 416, Y: 416},
 			ConfidenceThreshold: float32(confidenceThreshold),
@@ -111,7 +111,7 @@ func main() {
 
 	// Create output directory if it doesn't exist
 	if enableObjectDetection {
-		if err := os.MkdirAll(outputDir, 0755); err != nil {
+		if err := os.MkdirAll(outputDir, 0o755); err != nil {
 			fmt.Printf("Warning: Failed to create output directory: %v\n", err)
 		}
 	}
