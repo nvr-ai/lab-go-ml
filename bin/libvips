@@ -1,0 +1,30 @@
+#!/usr/bin/env bash
+
+if [ ! -d tmp/libvips ]; then
+  git clone https://github.com/libvips/libvips --depth 1 tmp/libvips
+fi
+
+if [ -d tmp/libvips/build ]; then
+  rm -rf tmp/libvips/build
+fi
+
+cd tmp/libvips || {
+  echo "Failed to cd into tmp/libvips"
+  exit 1
+}
+
+meson setup build \
+  --reconfigure \
+  --prefix=/opt/local \
+  -Dbuildtype=release \
+  -Dintrospection=enabled \
+  -Ddeprecated=false \
+  -Dwebp=enabled \
+  -Djpeg=enabled \
+  -Dpng=enabled \
+  -Dheif=disabled
+
+meson compile -C build
+sudo meson install -C build
+
+cd ../..

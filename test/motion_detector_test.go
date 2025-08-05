@@ -7,7 +7,6 @@ import (
 	"time"
 
 	"github.com/nvr-ai/go-ml/images"
-	"github.com/nvr-ai/go-ml/motion"
 	"github.com/stretchr/testify/require"
 	"gocv.io/x/gocv"
 )

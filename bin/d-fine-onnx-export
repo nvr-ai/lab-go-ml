@@ -1,0 +1,50 @@
+#!/usr/bin/env bash
+
+if [ ! -d .venv ]; then
+  uv venv --python=3.11
+  uv pip install -r requirements.txt
+fi
+
+source .venv/bin/activate
+
+if [ ! -d tmp/d-fine ]; then
+  git clone https://github.com/Peterande/D-FINE --depth 1 tmp/d-fine
+fi
+
+cd tmp/d-fine || {
+  echo "Failed to cd into tmp/d-fine"
+  exit 1
+}
+
+cd ../..
+
+test() {
+  local image_path="../../ml/corpus/images/videos/freeway-view-22-seconds-1080p.mp4/frame-0.jpg"
+  if [ ! -f "$image_path" ]; then
+    image_path="/corpus/images/videos/freeway-view-22-seconds-1080p.mp4/frame-0.jpg"
+  fi
+
+  echo "Running D-FINE model test with image: $image_path"
+  uv run tools/inference/onnx_inf.py --onnx model.onnx --input "$image_path"
+}
+# Switch on the first argument to provide command stubs for future extension.
+case "$1" in
+export)
+  # Export the D-FINE model to ONNX using the Python script.
+  python3 bin/d-fine-onnx-export.py
+  ;;
+test)
+  # Run the D-FINE model test using the Python script.
+  python3 bin/d-fine-onnx-test.py
+  ;;
+help | "")
+  echo "Usage: $0 {export|help}"
+  echo "  export   Export the D-FINE model to ONNX format."
+  echo "  help     Show this help message."
+  ;;
+*)
+  echo "Unknown command: $1"
+  echo "Use '$0 help' for usage."
+  exit 1
+  ;;
+esac

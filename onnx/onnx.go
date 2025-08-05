@@ -40,63 +40,67 @@ type ONNXDetector struct {
 	outputNames         []string
 }
 
-// NewSession creates a new ONNX detector
+// NewSession creates a new ONNX detector.
+//
+// Arguments:
+//   - config: The configuration for the ONNX detector.
+//
+// Returns:
+//   - *Session: The ONNX detector session.
+//   - error: An error if the session creation fails.
 func NewSession(config Config) (*Session, error) {
-	// Check if ONNX Runtime should be disabled
-	if config.DisableONNXRuntime {
-		return nil, fmt.Errorf("ONNX Runtime is disabled - library not available on this platform")
-	}
-
-	// Check if the shared library exists before trying to use it
+	// Check if the shared library exists before trying to use it.
 	libPath := getSharedLibPath()
 	if _, err := os.Stat(libPath); os.IsNotExist(err) {
 		return nil, fmt.Errorf("ONNX Runtime library not found at %s. On macOS ARM64, you need to build ONNX Runtime from source or disable ONNX Runtime. Error: %w", libPath, err)
 	}
 
+	ort.SetEnvironmentLogLevel(ort.LoggingLevelVerbose)
 	ort.SetSharedLibraryPath(libPath)
+
 	err := ort.InitializeEnvironment()
 	if err != nil {
-		return nil, fmt.Errorf("Error initializing ORT environment: %w", err)
+		return nil, fmt.Errorf("error initializing ORT environment: %w", err)
 	}
 
 	inputShape := ort.NewShape(1, 3, 640, 640)
 	inputTensor, err := ort.NewEmptyTensor[float32](inputShape)
 	if err != nil {
-		return nil, fmt.Errorf("Error creating input tensor: %w", err)
+		return nil, fmt.Errorf("error creating input tensor: %w", err)
 	}
+
 	outputShape := ort.NewShape(1, 84, 8400)
 	outputTensor, err := ort.NewEmptyTensor[float32](outputShape)
 	if err != nil {
-		inputTensor.Destroy()
-		return nil, fmt.Errorf("Error creating output tensor: %w", err)
+		inputTensor.Destroy() // Clean up input tensor if output tensor creation fails
+		return nil, fmt.Errorf("error creating output tensor: %w", err)
 	}
+
 	options, err := ort.NewSessionOptions()
 	if err != nil {
-		inputTensor.Destroy()
-		outputTensor.Destroy()
-		return nil, fmt.Errorf("Error creating ORT session options: %w", err)
+		return nil, fmt.Errorf("error creating ORT session options: %w", err)
 	}
 	defer options.Destroy()
 
-	// If CoreML is enabled, append the CoreML execution provider
 	if config.UseCoreML {
 		err = options.AppendExecutionProviderCoreML(0)
 		if err != nil {
-			inputTensor.Destroy()
-			outputTensor.Destroy()
-			return nil, fmt.Errorf("Error enabling CoreML: %w", err)
+			return nil, fmt.Errorf("error enabling CoreML: %w", err)
 		}
 	}
 
-	session, err := ort.NewAdvancedSession(config.ModelPath,
-		[]string{"images"}, []string{"output0"},
+	session, err := ort.NewAdvancedSession(
+		config.ModelPath,
+		[]string{"images"},
+		[]string{"output0"},
 		[]ort.ArbitraryTensor{inputTensor},
 		[]ort.ArbitraryTensor{outputTensor},
-		options)
+		options,
+	)
 	if err != nil {
 		inputTensor.Destroy()
 		outputTensor.Destroy()
-		return nil, fmt.Errorf("Error creating ORT session: %w", err)
+		return nil, fmt.Errorf("error creating ORT session: %w", err)
 	}
 
 	return &Session{
@@ -106,41 +110,23 @@ func NewSession(config Config) (*Session, error) {
 	}, nil
 }
 
-// initialize sets up the ONNX runtime environment using gocv.ReadNet()
-func (d *ONNXDetector) initialize() error {
-	d.mu.Lock()
-	defer d.mu.Unlock()
-
-	// Check if model file exists
-	if _, err := os.Stat(d.modelPath); os.IsNotExist(err) {
-		return fmt.Errorf("model file not found: %s", d.modelPath)
+// Close releases the resources associated with the Session.
+//
+// Returns:
+//   - No return values.
+func (s *Session) Close() {
+	if s.Input != nil {
+		s.Input.Destroy()
+		s.Input = nil
 	}
-
-	// Load the ONNX model using gocv.ReadNet()
-	net := gocv.ReadNet(d.modelPath, "")
-	if net.Empty() {
-		return fmt.Errorf("failed to load ONNX model: %s", d.modelPath)
+	if s.Output != nil {
+		s.Output.Destroy()
+		s.Output = nil
 	}
-	d.net = net
-
-	// Set backend and target (CPU for now, can be extended for GPU)
-	d.net.SetPreferableBackend(gocv.NetBackendOpenCV)
-	d.net.SetPreferableTarget(gocv.NetTargetCPU)
-
-	// Get output layer names
-	d.outputNames = d.net.GetLayerNames()
-	if len(d.outputNames) == 0 {
-		return fmt.Errorf("failed to get output layer names from model")
+	if s.Session != nil {
+		s.Session.Destroy()
+		s.Session = nil
 	}
-
-	d.initialized = true
-	log.Printf("✅ ONNX detector initialized with model: %s", d.modelPath)
-	log.Printf("📋 Input shape: %dx%d", d.inputShape.X, d.inputShape.Y)
-	log.Printf("🎯 Confidence threshold: %.2f", d.confidenceThreshold)
-	log.Printf("🔍 Relevant classes: %v", d.GetRelevantClasses())
-	log.Printf("📊 Output layers: %v", d.outputNames)
-
-	return nil
 }
 
 // Detect runs inference on the input image

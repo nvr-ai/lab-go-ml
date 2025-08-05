@@ -1,4 +1,4 @@
-// Package image provides a reusable pipeline for motion segmentation in video frames
+// Package images - This file contains the motion detection functionality
 // using OpenCV (via gocv).
 //
 // The MotionSegmenter struct encapsulates a typical computer vision pipeline involving:

@@ -1,3 +1,4 @@
+// Package images - This file contains the commonly used utility functions.
 package images
 
 import (
