@@ -69,9 +69,9 @@ type MotionSegmenter struct {
 
 // MotionSegmenterInput represents an image that can be passed to the MotionSegmenter.Set() method.
 type MotionSegmenterInput struct {
-	// The JPEG-encoded image data.
-	data     []byte
-	readFlag gocv.IMReadFlag
+	// The JPEG-encoded image Data.
+	Data     []byte
+	ReadFlag gocv.IMReadFlag
 }
 
 // NewMotionSegmenter constructs a new MotionSegmenter with initialized OpenCV matrices.
@@ -103,7 +103,7 @@ func NewMotionSegmenter() *MotionSegmenter {
 // The resulting Mat is stored in the Input field for further processing.
 func (m *MotionSegmenter) Set(input MotionSegmenterInput) error {
 	// Decode the JPEG bytes into a Mat (color image).
-	mat, err := gocv.IMDecode(input.data, input.readFlag)
+	mat, err := gocv.IMDecode(input.Data, input.ReadFlag)
 	if err != nil {
 		return err
 	}
@@ -169,6 +169,7 @@ func (m *MotionSegmenter) DetectContours() gocv.PointsVector {
 }
 
 // SegmentMotion runs the full motion segmentation pipeline:
+//
 //  1. Background subtraction
 //  2. Thresholding
 //  3. Morphological dilation
@@ -186,6 +187,24 @@ func (m *MotionSegmenter) SegmentMotion(frame gocv.Mat) gocv.PointsVector {
 	m.ApplyThreshold(25, 255)
 	m.FillGaps()
 	return m.DetectContours()
+}
+
+// DetectMotion checks if the given contours contain motion by looping through
+// the contours and checking if the area is greater than the minimum area.
+//
+// Arguments:
+//   - contours: The contours to check.
+//
+// Returns:
+//   - bool: true if motion is detected, false otherwise.
+func (m *MotionSegmenter) DetectMotion(contours gocv.PointsVector, minimumArea float64) bool {
+	for i := 0; i < contours.Size(); i++ {
+		area := gocv.ContourArea(contours.At(i))
+		if area >= minimumArea {
+			return true
+		}
+	}
+	return false
 }
 
 // Close releases all OpenCV native resources used by the segmenter.

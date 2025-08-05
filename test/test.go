@@ -220,10 +220,27 @@ func (r *TestRunner) runUnitTests() error {
 		name string
 		fn   func(*testing.T)
 	}{
+		// Motion Segmentation Tests
 		{"TestMotionSegmenterCreation", TestMotionSegmenterCreation},
 		{"TestSubtractBackground", TestSubtractBackground},
 		{"TestSegmentMotionPipeline", TestSegmentMotionPipeline},
 		{"TestIdempotency", TestIdempotency},
+		
+		// Motion Detector Tests
+		{"TestMotionDetectorCreation", TestMotionDetectorCreation},
+		{"TestMotionDetectorFPS", TestMotionDetectorFPS},
+		{"TestMotionDetectorProcess", TestMotionDetectorProcess},
+		{"TestMotionDetectorWithRealFrames", TestMotionDetectorWithRealFrames},
+		{"TestMotionDetectorMetrics", TestMotionDetectorMetrics},
+		{"TestMotionDetectorConcurrency", TestMotionDetectorConcurrency},
+		{"TestMotionDetectorConfigValidation", TestMotionDetectorConfigValidation},
+		{"TestMotionDetectorProfilerIntegration", TestMotionDetectorProfilerIntegration},
+		
+		// Advanced Motion Detector Tests
+		{"TestMotionDetectorRealVideoSequence", TestMotionDetectorRealVideoSequence},
+		{"TestMotionDetectorStateTransitions", TestMotionDetectorStateTransitions},
+		{"TestMotionDetectorResourceManagement", TestMotionDetectorResourceManagement},
+		{"TestMotionDetectorErrorConditions", TestMotionDetectorErrorConditions},
 	}
 
 	// Apply filter if specified.
@@ -411,10 +428,27 @@ func (r *TestRunner) runRegressionAnalysis() error {
 
 	// Analyze each test.
 	testNames := []string{
+		// Motion Segmentation Tests
 		"TestMotionSegmenterCreation",
-		"TestSubtractBackground",
+		"TestSubtractBackground", 
 		"TestSegmentMotionPipeline",
 		"TestIdempotency",
+		
+		// Motion Detector Tests
+		"TestMotionDetectorCreation",
+		"TestMotionDetectorFPS",
+		"TestMotionDetectorProcess",
+		"TestMotionDetectorWithRealFrames",
+		"TestMotionDetectorMetrics",
+		"TestMotionDetectorConcurrency",
+		"TestMotionDetectorConfigValidation",
+		"TestMotionDetectorProfilerIntegration",
+		
+		// Advanced Motion Detector Tests
+		"TestMotionDetectorRealVideoSequence",
+		"TestMotionDetectorStateTransitions",
+		"TestMotionDetectorResourceManagement",
+		"TestMotionDetectorErrorConditions",
 	}
 
 	for _, testName := range testNames {
