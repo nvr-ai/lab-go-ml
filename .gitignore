@@ -1,3 +1,5 @@
 tmp
 corpus
 **/*results*
+**/*.mp4
+**/*.onnx
