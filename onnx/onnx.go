@@ -11,17 +11,6 @@ import (
 	"gocv.io/x/gocv"
 )
 
-// COCO Classes for YOLO models
-var COCOClasses = []string{
-	"__background__", "person", "bicycle", "car", "motorcycle", "airplane", "bus", "train", "truck", "boat",
-	"traffic light", "fire hydrant", "stop sign", "parking meter", "bench", "bird", "cat", "dog", "horse", "sheep",
-	"cow", "elephant", "bear", "zebra", "giraffe", "backpack", "umbrella", "handbag", "tie", "suitcase",
-	"frisbee", "skis", "snowboard", "sports ball", "kite", "baseball bat", "baseball glove", "skateboard", "surfboard", "tennis racket",
-	"bottle", "wine glass", "cup", "fork", "knife", "spoon", "bowl", "banana", "apple", "sandwich",
-	"orange", "broccoli", "carrot", "hot dog", "pizza", "donut", "cake", "chair", "couch", "potted plant",
-	"bed", "dining table", "toilet", "tv", "laptop", "mouse", "remote", "keyboard", "cell phone", "microwave",
-	"oven", "toaster", "sink", "refrigerator", "book", "clock", "vase", "scissors", "teddy bear", "hair drier", "toothbrush",
-}
 
 // Detection represents a detected object
 type Detection struct {
@@ -44,18 +33,10 @@ type ONNXDetector struct {
 	outputNames         []string
 }
 
-// Config for ONNX detector
-type Config struct {
-	ModelPath           string
-	InputShape          image.Point
-	ConfidenceThreshold float32
-	NMSThreshold        float32
-	RelevantClasses     []string
-}
 
 // NewONNXDetector creates a new ONNX detector
 func NewONNXDetector(config Config) (*ONNXDetector, error) {
-	detector := &ONNXDetector{
+	detector := & ONNXDetector{
 		modelPath:           config.ModelPath,
 		inputShape:          config.InputShape,
 		confidenceThreshold: config.ConfidenceThreshold,
@@ -358,33 +339,4 @@ func (d *ONNXDetector) ValidateModel() error {
 	// - Check model metadata
 
 	return nil
-}
-
-// GetCOCOClasses returns the COCO class names
-func GetCOCOClasses() []string {
-	return COCOClasses
-}
-
-// GetClassMapping returns a mapping of class names to their IDs
-func GetClassMapping() map[string]int {
-	mapping := make(map[string]int)
-	for i, className := range COCOClasses {
-		mapping[className] = i
-	}
-	return mapping
-}
-
-// Helper functions
-func max(a, b int) int {
-	if a > b {
-		return a
-	}
-	return b
-}
-
-func min(a, b int) int {
-	if a < b {
-		return a
-	}
-	return b
 }
