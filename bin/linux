@@ -1,0 +1,18 @@
+#!/usr/bin/env bash
+
+if [ ! -d "onnxruntime" ]; then
+  git clone --recursive https://github.com/microsoft/onnxruntime --depth 1
+fi
+
+cd onnxruntime
+./build.sh --config Release \
+  --parallel \
+  --compile_no_warning_as_error \
+  --skip_submodule_sync \
+  --build_wheel \
+  --skip_tests
+
+mkdir -p ../third_party
+cp build/MacOS/Release/onnxruntime.dylib ../third_party/onnxruntime_arm64.dylib
+
+# rm -rf onnxruntime
