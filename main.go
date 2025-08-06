@@ -65,6 +65,8 @@ func main() {
 		videoPath             string
 		imagePath             string
 		showVisualization     bool
+		testMode              bool
+		useFastRCNN           bool
 	)
 	flag.DurationVar(&minDuration, "min-duration", DefaultMinMotionDuration, "Minimum motion duration before reporting")
 	flag.StringVar(&onnxModelPath, "onnx-model", DefaultONNXModelPath, "Path to YOLO ONNX model file")
@@ -74,6 +76,8 @@ func main() {
 	flag.StringVar(&videoPath, "video", "", "Path to video file (.mp4, .avi, .mov)")
 	flag.StringVar(&imagePath, "image", "", "Path to image file (.jpg, .jpeg, .png, .bmp)")
 	flag.BoolVar(&showVisualization, "show-window", false, "Show visualization window")
+	flag.BoolVar(&testMode, "test-mode", false, "Test mode - bypass object detection to check if ONNX is causing issues")
+	flag.BoolVar(&useFastRCNN, "fastrcnn", false, "Use FastRCNN model instead of YOLO")
 	flag.Parse()
 
 	// Validate input flags
@@ -84,33 +88,60 @@ func main() {
 
 	// Initialize object detection if enabled
 	var objectDetector *onnx.ONNXDetector
-	if enableObjectDetection {
+	var fastRCNNModel *onnx.FastRCNNModel
+	if enableObjectDetection && !testMode {
 		var err error
-		objectDetector, err = onnx.NewONNXDetector(onnx.Config{
-			ModelPath:           onnxModelPath,
-			InputShape:          image.Point{X: 416, Y: 416},
-			ConfidenceThreshold: float32(confidenceThreshold),
-			NMSThreshold:        0.5,
-			RelevantClasses:     []string{"person", "car", "truck", "bus", "motorcycle", "bicycle"},
-		})
-		if err != nil {
-			fmt.Printf("⚠️  Warning: Failed to initialize object detector: %v\n", err)
-			fmt.Printf("💡 This could be due to:\n")
-			fmt.Printf("   - Incompatible ONNX model format\n")
-			fmt.Printf("   - Missing OpenCV DNN support\n")
-			fmt.Printf("   - Corrupted model file\n")
-			fmt.Printf("   - Insufficient system resources\n")
-			fmt.Printf("🔄 Continuing with motion detection only...\n")
-			enableObjectDetection = false
+		if useFastRCNN {
+			// Initialize FastRCNN model
+			fastRCNNModel, err = onnx.NewFastRCNNModel(onnx.FastRCNNConfig{
+				ModelPath:           onnxModelPath,
+				InputShape:          image.Point{X: 800, Y: 600}, // FastRCNN typical input size
+				ConfidenceThreshold: float32(confidenceThreshold),
+				NMSThreshold:        0.3,
+				RelevantClasses:     []string{"person", "car", "truck", "bus", "motorcycle", "bicycle"},
+			})
+			if err != nil {
+				fmt.Printf("⚠️  Warning: Failed to initialize FastRCNN model: %v\n", err)
+				fmt.Printf("💡 This could be due to:\n")
+				fmt.Printf("   - Incompatible FastRCNN model format\n")
+				fmt.Printf("   - Missing OpenCV DNN support\n")
+				fmt.Printf("   - Corrupted model file\n")
+				fmt.Printf("   - Insufficient system resources\n")
+				fmt.Printf("🔄 Continuing with motion detection only...\n")
+				enableObjectDetection = false
+			} else {
+				defer fastRCNNModel.Close()
+				fmt.Printf("✅ FastRCNN model initialized successfully\n")
+				fmt.Printf("Model loaded successfully: %s\n", onnxModelPath)
+			}
 		} else {
-			defer objectDetector.Close()
-			fmt.Printf("✅ Object detector initialized successfully\n")
-			fmt.Printf("Model loaded successfully: yolov3u.onnx\n")
+			// Initialize YOLO model
+			objectDetector, err = onnx.NewONNXDetector(onnx.Config{
+				ModelPath:           onnxModelPath,
+				InputShape:          image.Point{X: 416, Y: 416},
+				ConfidenceThreshold: float32(confidenceThreshold),
+				NMSThreshold:        0.5,
+				RelevantClasses:     []string{"person", "car", "truck", "bus", "motorcycle", "bicycle"},
+			})
+			if err != nil {
+				fmt.Printf("⚠️  Warning: Failed to initialize object detector: %v\n", err)
+				fmt.Printf("💡 This could be due to:\n")
+				fmt.Printf("   - Incompatible ONNX model format\n")
+				fmt.Printf("   - Missing OpenCV DNN support\n")
+				fmt.Printf("   - Corrupted model file\n")
+				fmt.Printf("   - Insufficient system resources\n")
+				fmt.Printf("🔄 Continuing with motion detection only...\n")
+				enableObjectDetection = false
+			} else {
+				defer objectDetector.Close()
+				fmt.Printf("✅ Object detector initialized successfully\n")
+				fmt.Printf("Model loaded successfully: yolov3u.onnx\n")
+			}
 		}
 	}
 
 	// Create output directory if it doesn't exist
-	if enableObjectDetection {
+	if enableObjectDetection && !testMode {
 		if err := os.MkdirAll(outputDir, 0755); err != nil {
 			fmt.Printf("Warning: Failed to create output directory: %v\n", err)
 		}
@@ -183,7 +214,10 @@ func main() {
 			return "Unknown"
 		}
 	}())
-	if enableObjectDetection {
+	if testMode {
+		fmt.Printf("   🧪 Test mode: ✅ Enabled (object detection bypassed)\n")
+		fmt.Printf("   🤖 Object detection: ❌ Disabled (test mode)\n")
+	} else if enableObjectDetection {
 		fmt.Printf("   🤖 Object detection: ✅ Enabled\n")
 		fmt.Printf("   🎯 Model: %s\n", onnxModelPath)
 		fmt.Printf("   📊 Confidence threshold: %.2f\n", confidenceThreshold)
@@ -284,7 +318,7 @@ func main() {
 		// Object detection on motion ROIs
 		var relevantObjectsDetected bool
 		var detectedObjects []string
-		if enableObjectDetection && motionDetected && len(motionROIs) > 0 {
+		if enableObjectDetection && !testMode && motionDetected && len(motionROIs) > 0 {
 			relevantObjectsDetected, detectedObjects = processMotionROIs(img, motionROIs, objectDetector, frameCounter, outputDir)
 		}
 
@@ -324,12 +358,14 @@ func main() {
 			fmt.Printf(" | Area: %.0f | ROIs: %d", maxArea, len(motionROIs))
 		}
 
-		if enableObjectDetection {
+		if enableObjectDetection && !testMode {
 			if relevantObjectsDetected && len(detectedObjects) > 0 {
 				fmt.Printf(" | Objects: ✅ Found (%s)", strings.Join(detectedObjects, ", "))
 			} else {
 				fmt.Printf(" | Objects: ❌ None")
 			}
+		} else if testMode {
+			fmt.Printf(" | Objects: 🧪 Test Mode (bypassed)")
 		}
 
 		fmt.Printf("\n")
@@ -346,7 +382,7 @@ func main() {
 		gocv.PutText(&img, eventText, image.Pt(10, 90), gocv.FontHersheyPlain, 1.2, color.RGBA{255, 255, 255, 0}, 2)
 
 		// Draw object detection status
-		if enableObjectDetection {
+		if enableObjectDetection && !testMode {
 			objText := fmt.Sprintf("Object Detection: %s", func() string {
 				if relevantObjectsDetected {
 					return "Relevant Objects Found"
@@ -463,45 +499,75 @@ func processMotionROIs(img gocv.Mat, motionROIs []image.Rectangle, detector *onn
 	var detectedObjects []string
 	objectCount := make(map[string]int)
 
-	for _, roi := range motionROIs {
-		// Run object detection on the ROI
-		detections, err := detector.DetectROI(img, roi)
-		if err != nil {
-			fmt.Printf("Error detecting objects in ROI: %v\n", err)
-			continue
-		}
+	// Add timeout protection for object detection
+	done := make(chan struct {
+		relevant bool
+		objects  []string
+	}, 1)
+	errChan := make(chan error, 1)
 
-		// Check if any relevant objects were detected
-		for _, detection := range detections {
-			if detector.IsRelevantClass(detection.ClassName) {
-				relevantObjectsDetected = true
-				objectCount[detection.ClassName]++
+	go func() {
+		defer func() {
+			if r := recover(); r != nil {
+				errChan <- fmt.Errorf("panic during object detection: %v", r)
+			}
+		}()
 
-				// Save the frame with relevant objects
-				filename := filepath.Join(outputDir, fmt.Sprintf("motion_frame_%d_%s_%.2f.jpg",
-					frameCounter, detection.ClassName, detection.Score))
+		for _, roi := range motionROIs {
+			// Run object detection on the ROI with timeout
+			detections, err := detector.DetectROI(img, roi)
+			if err != nil {
+				fmt.Printf("⚠️  Error detecting objects in ROI: %v\n", err)
+				continue
+			}
 
-				if gocv.IMWrite(filename, img) {
-					fmt.Printf("💾 Saved frame with %s (confidence: %.2f) to %s\n",
-						detection.ClassName, detection.Score, filename)
-				} else {
-					fmt.Printf("❌ Failed to save frame to %s\n", filename)
+			// Check if any relevant objects were detected
+			for _, detection := range detections {
+				if detector.IsRelevantClass(detection.ClassName) {
+					relevantObjectsDetected = true
+					objectCount[detection.ClassName]++
+
+					// Save the frame with relevant objects
+					filename := filepath.Join(outputDir, fmt.Sprintf("motion_frame_%d_%s_%.2f.jpg",
+						frameCounter, detection.ClassName, detection.Score))
+
+					if gocv.IMWrite(filename, img) {
+						fmt.Printf("💾 Saved frame with %s (confidence: %.2f) to %s\n",
+							detection.ClassName, detection.Score, filename)
+					} else {
+						fmt.Printf("❌ Failed to save frame to %s\n", filename)
+					}
+
+					// Draw detection box on the image
+					gocv.Rectangle(&img, detection.Box, color.RGBA{0, 255, 0, 0}, 2)
+					label := fmt.Sprintf("%s %.2f", detection.ClassName, detection.Score)
+					gocv.PutText(&img, label, detection.Box.Min, gocv.FontHersheyPlain, 0.8, color.RGBA{0, 255, 0, 0}, 2)
 				}
-
-				// Draw detection box on the image
-				gocv.Rectangle(&img, detection.Box, color.RGBA{0, 255, 0, 0}, 2)
-				label := fmt.Sprintf("%s %.2f", detection.ClassName, detection.Score)
-				gocv.PutText(&img, label, detection.Box.Min, gocv.FontHersheyPlain, 0.8, color.RGBA{0, 255, 0, 0}, 2)
 			}
 		}
-	}
 
-	// Convert object count to string slice
-	for objType, count := range objectCount {
-		if count > 0 {
-			detectedObjects = append(detectedObjects, fmt.Sprintf("%s(%d)", objType, count))
+		// Convert object count to string slice
+		for objType, count := range objectCount {
+			if count > 0 {
+				detectedObjects = append(detectedObjects, fmt.Sprintf("%s(%d)", objType, count))
+			}
 		}
-	}
 
-	return relevantObjectsDetected, detectedObjects
+		done <- struct {
+			relevant bool
+			objects  []string
+		}{relevantObjectsDetected, detectedObjects}
+	}()
+
+	// Wait for object detection with timeout
+	select {
+	case result := <-done:
+		return result.relevant, result.objects
+	case err := <-errChan:
+		fmt.Printf("⚠️  Object detection error: %v\n", err)
+		return false, []string{}
+	case <-time.After(3 * time.Second): // 3 second timeout
+		fmt.Printf("⚠️  Object detection timeout after 3 seconds\n")
+		return false, []string{}
+	}
 }
