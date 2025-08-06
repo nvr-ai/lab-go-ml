@@ -12,15 +12,7 @@ import (
 	"time"
 
 	"github.com/nvr-ai/go-ml/images"
-)
-
-// ImageFormat represents supported image formats for benchmarking
-type ImageFormat string
-
-const (
-	FormatJPEG ImageFormat = "jpeg"
-	FormatWebP ImageFormat = "webp"
-	FormatPNG  ImageFormat = "png"
+	"github.com/nvr-ai/go-ml/inference"
 )
 
 // ModelType represents different ML model types
@@ -49,14 +41,15 @@ var CommonResolutions = []Resolution{
 
 // TestScenario defines a specific test configuration
 type TestScenario struct {
-	Name        string      `json:"name"`
-	ModelType   ModelType   `json:"model_type"`
-	ModelPath   string      `json:"model_path"`
-	Resolution  Resolution  `json:"resolution"`
-	ImageFormat ImageFormat `json:"image_format"`
-	BatchSize   int         `json:"batch_size"`
-	Iterations  int         `json:"iterations"`
-	WarmupRuns  int         `json:"warmup_runs"`
+	Name        string               `json:"name"`
+	ModelType   ModelType            `json:"model_type"`
+	ModelPath   string               `json:"model_path"`
+	EngineType  inference.EngineType `json:"engine_type"`
+	Resolution  Resolution           `json:"resolution"`
+	ImageFormat images.ImageFormat   `json:"image_format"`
+	BatchSize   int                  `json:"batch_size"`
+	Iterations  int                  `json:"iterations"`
+	WarmupRuns  int                  `json:"warmup_runs"`
 }
 
 // PerformanceMetrics captures detailed performance data
@@ -100,27 +93,19 @@ type DiskIOMetrics struct {
 	WriteOps   uint64 `json:"write_ops"`
 }
 
-// InferenceEngine defines the interface for ML inference engines
-type InferenceEngine interface {
-	LoadModel(modelPath string, config map[string]interface{}) error
-	Predict(ctx context.Context, img image.Image) (interface{}, error)
-	Close() error
-	GetModelInfo() map[string]interface{}
-}
-
 // BenchmarkSuite manages and executes benchmark scenarios
 type BenchmarkSuite struct {
 	scenarios   []TestScenario
-	engine      InferenceEngine
+	engine      inference.Engine
 	outputDir   string
 	testImages  [][]byte
-	imageFormat ImageFormat
+	imageFormat images.ImageFormat
 	mu          sync.RWMutex
 	results     []PerformanceMetrics
 }
 
 // NewBenchmarkSuite creates a new benchmark suite
-func NewBenchmarkSuite(engine InferenceEngine, outputDir string) *BenchmarkSuite {
+func NewBenchmarkSuite(engine inference.Engine, outputDir string) *BenchmarkSuite {
 	return &BenchmarkSuite{
 		engine:    engine,
 		outputDir: outputDir,
@@ -137,7 +122,7 @@ func (bs *BenchmarkSuite) AddScenario(scenario TestScenario) {
 }
 
 // LoadTestImages loads test images from a directory or file
-func (bs *BenchmarkSuite) LoadTestImages(imagePath string, format ImageFormat) error {
+func (bs *BenchmarkSuite) LoadTestImages(imagePath string, format images.ImageFormat) error {
 	bs.mu.Lock()
 	defer bs.mu.Unlock()
 
@@ -153,7 +138,7 @@ func (bs *BenchmarkSuite) LoadTestImages(imagePath string, format ImageFormat) e
 	return bs.loadImageFromFile(imagePath, format)
 }
 
-func (bs *BenchmarkSuite) loadImagesFromDirectory(dirPath string, format ImageFormat) error {
+func (bs *BenchmarkSuite) loadImagesFromDirectory(dirPath string, format images.ImageFormat) error {
 	files, err := os.ReadDir(dirPath)
 	if err != nil {
 		return fmt.Errorf("failed to read directory: %w", err)
@@ -178,7 +163,7 @@ func (bs *BenchmarkSuite) loadImagesFromDirectory(dirPath string, format ImageFo
 	return nil
 }
 
-func (bs *BenchmarkSuite) loadImageFromFile(filePath string, format ImageFormat) error {
+func (bs *BenchmarkSuite) loadImageFromFile(filePath string, format images.ImageFormat) error {
 	data, err := os.ReadFile(filePath)
 	if err != nil {
 		return fmt.Errorf("failed to read image file: %w", err)
@@ -282,11 +267,11 @@ func (bs *BenchmarkSuite) processImage(ctx context.Context, imageData []byte, sc
 	var err error
 
 	switch scenario.ImageFormat {
-	case FormatJPEG:
+	case images.FormatJPEG:
 		resizedImg, err = images.ResizeImageToImage(imageData, scenario.Resolution.Width, scenario.Resolution.Height, images.FormatJPEG)
-	case FormatWebP:
+	case images.FormatWebP:
 		resizedImg, err = images.ResizeImageToImage(imageData, scenario.Resolution.Width, scenario.Resolution.Height, images.FormatWebP)
-	case FormatPNG:
+	case images.FormatPNG:
 		resizedImg, err = images.ResizeImageToImage(imageData, scenario.Resolution.Width, scenario.Resolution.Height, images.FormatPNG)
 	default:
 		return 0, fmt.Errorf("unsupported image format: %s", scenario.ImageFormat)

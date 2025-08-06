@@ -4,6 +4,9 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+
+	"github.com/nvr-ai/go-ml/images"
+	"github.com/nvr-ai/go-ml/inference"
 )
 
 // ScenarioBuilder helps build test scenarios with fluent API
@@ -15,12 +18,18 @@ type ScenarioBuilder struct {
 func NewScenarioBuilder(name string) *ScenarioBuilder {
 	return &ScenarioBuilder{
 		scenario: TestScenario{
-			Name:        name,
-			BatchSize:   1,
-			Iterations:  100,
-			WarmupRuns:  10,
+			Name:       name,
+			BatchSize:  1,
+			Iterations: 100,
+			WarmupRuns: 10,
 		},
 	}
+}
+
+// WithEngineType sets the engine type
+func (sb *ScenarioBuilder) WithEngineType(engineType inference.EngineType) *ScenarioBuilder {
+	sb.scenario.EngineType = engineType
+	return sb
 }
 
 // WithModel sets the model configuration
@@ -41,7 +50,7 @@ func (sb *ScenarioBuilder) WithResolution(width, height int) *ScenarioBuilder {
 }
 
 // WithImageFormat sets the image format
-func (sb *ScenarioBuilder) WithImageFormat(format ImageFormat) *ScenarioBuilder {
+func (sb *ScenarioBuilder) WithImageFormat(format images.ImageFormat) *ScenarioBuilder {
 	sb.scenario.ImageFormat = format
 	return sb
 }
@@ -85,16 +94,16 @@ func (ps *PredefinedScenarios) GetComprehensiveScenarios(modelPaths map[ModelTyp
 
 	// Test different resolutions for each model and format combination
 	for modelType, modelPath := range modelPaths {
-		for _, resolution := range CommonResolutions {
-			for _, format := range []ImageFormat{FormatJPEG, FormatWebP, FormatPNG} {
+		for _, resolution := range images.GetAllResolutions() {
+			for _, format := range []images.ImageFormat{images.FormatJPEG, images.FormatWebP, images.FormatPNG} {
 				scenario := NewScenarioBuilder(fmt.Sprintf("%s_%s_%s", modelType, resolution.Name, format)).
 					WithModel(modelType, modelPath).
-					WithResolution(resolution.Width, resolution.Height).
+					WithResolution(resolution.Pixels.Width, resolution.Pixels.Height).
 					WithImageFormat(format).
 					WithIterations(100).
 					WithWarmupRuns(10).
 					Build()
-				
+
 				scenarios = append(scenarios, scenario)
 			}
 		}
@@ -123,11 +132,11 @@ func (ps *PredefinedScenarios) GetQuickScenarios(modelPaths map[ModelType]string
 			scenario := NewScenarioBuilder(fmt.Sprintf("quick_%s_%s", modelType, resolution.Name)).
 				WithModel(modelType, modelPath).
 				WithResolution(resolution.Width, resolution.Height).
-				WithImageFormat(FormatJPEG).
+				WithImageFormat(images.FormatJPEG).
 				WithIterations(50).
 				WithWarmupRuns(5).
 				Build()
-			
+
 			scenarios = append(scenarios, scenario)
 		}
 	}
@@ -143,15 +152,15 @@ func (ps *PredefinedScenarios) GetQuickScenarios(modelPaths map[ModelType]string
 func (ps *PredefinedScenarios) GetResolutionComparisonScenarios(modelType ModelType, modelPath string) *ScenarioSet {
 	scenarios := make([]TestScenario, 0)
 
-	for _, resolution := range CommonResolutions {
+	for _, resolution := range images.GetAllResolutions() {
 		scenario := NewScenarioBuilder(fmt.Sprintf("resolution_%s_%s", modelType, resolution.Name)).
 			WithModel(modelType, modelPath).
-			WithResolution(resolution.Width, resolution.Height).
-			WithImageFormat(FormatJPEG). // Use consistent format
+			WithResolution(resolution.Pixels.Width, resolution.Pixels.Height).
+			WithImageFormat(images.FormatJPEG). // Use consistent format
 			WithIterations(100).
 			WithWarmupRuns(10).
 			Build()
-		
+
 		scenarios = append(scenarios, scenario)
 	}
 
@@ -166,7 +175,7 @@ func (ps *PredefinedScenarios) GetResolutionComparisonScenarios(modelType ModelT
 func (ps *PredefinedScenarios) GetFormatComparisonScenarios(modelType ModelType, modelPath string, resolution Resolution) *ScenarioSet {
 	scenarios := make([]TestScenario, 0)
 
-	formats := []ImageFormat{FormatJPEG, FormatWebP, FormatPNG}
+	formats := []images.ImageFormat{images.FormatJPEG, images.FormatWebP, images.FormatPNG}
 	for _, format := range formats {
 		scenario := NewScenarioBuilder(fmt.Sprintf("format_%s_%s_%s", modelType, resolution.Name, format)).
 			WithModel(modelType, modelPath).
@@ -175,7 +184,7 @@ func (ps *PredefinedScenarios) GetFormatComparisonScenarios(modelType ModelType,
 			WithIterations(100).
 			WithWarmupRuns(10).
 			Build()
-		
+
 		scenarios = append(scenarios, scenario)
 	}
 
@@ -187,7 +196,7 @@ func (ps *PredefinedScenarios) GetFormatComparisonScenarios(modelType ModelType,
 }
 
 // GetModelComparisonScenarios compares different models with the same configuration
-func (ps *PredefinedScenarios) GetModelComparisonScenarios(modelPaths map[ModelType]string, resolution Resolution, format ImageFormat) *ScenarioSet {
+func (ps *PredefinedScenarios) GetModelComparisonScenarios(modelPaths map[ModelType]string, resolution Resolution, format images.ImageFormat) *ScenarioSet {
 	scenarios := make([]TestScenario, 0)
 
 	for modelType, modelPath := range modelPaths {
@@ -198,7 +207,7 @@ func (ps *PredefinedScenarios) GetModelComparisonScenarios(modelPaths map[ModelT
 			WithIterations(100).
 			WithWarmupRuns(10).
 			Build()
-		
+
 		scenarios = append(scenarios, scenario)
 	}
 
@@ -216,7 +225,7 @@ func SaveScenarioSet(scenarioSet *ScenarioSet, filename string) error {
 		return fmt.Errorf("failed to marshal scenario set: %w", err)
 	}
 
-	if err := os.WriteFile(filename, data, 0644); err != nil {
+	if err := os.WriteFile(filename, data, 0o644); err != nil {
 		return fmt.Errorf("failed to write scenario file: %w", err)
 	}
 
@@ -240,12 +249,13 @@ func LoadScenarioSet(filename string) (*ScenarioSet, error) {
 
 // BenchmarkConfig represents the overall benchmark configuration
 type BenchmarkConfig struct {
-	OutputDir       string            `json:"output_dir"`
-	TestImagesPath  string            `json:"test_images_path"`
-	ModelPaths      map[string]string `json:"model_paths"`
-	MaxConcurrency  int               `json:"max_concurrency"`
-	TimeoutSeconds  int               `json:"timeout_seconds"`
-	SaveDetailedLog bool              `json:"save_detailed_log"`
+	OutputDir       string               `json:"output_dir"`
+	TestImagesPath  string               `json:"test_images_path"`
+	Engine          inference.EngineType `json:"engine"`
+	ModelPaths      map[string]string    `json:"model_paths"`
+	MaxConcurrency  int                  `json:"max_concurrency"`
+	TimeoutSeconds  int                  `json:"timeout_seconds"`
+	SaveDetailedLog bool                 `json:"save_detailed_log"`
 }
 
 // DefaultBenchmarkConfig returns a default benchmark configuration
@@ -267,7 +277,7 @@ func (bc *BenchmarkConfig) SaveConfig(filename string) error {
 		return fmt.Errorf("failed to marshal config: %w", err)
 	}
 
-	if err := os.WriteFile(filename, data, 0644); err != nil {
+	if err := os.WriteFile(filename, data, 0o644); err != nil {
 		return fmt.Errorf("failed to write config file: %w", err)
 	}
 

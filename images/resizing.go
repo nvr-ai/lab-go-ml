@@ -128,15 +128,6 @@ func ResizeWebPToImage(b []byte, width, height int) (image.Image, error) {
 	return imgDecoded, nil
 }
 
-// ImageFormat represents supported image formats
-type ImageFormat int
-
-const (
-	FormatJPEG ImageFormat = iota
-	FormatWebP
-	FormatPNG
-)
-
 // ResizePNGToImage resizes a PNG []byte to the given width and height,
 // returning a Go-native image.Image.
 func ResizePNGToImage(b []byte, width, height int) (image.Image, error) {

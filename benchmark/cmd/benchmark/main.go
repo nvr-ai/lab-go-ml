@@ -11,20 +11,22 @@ import (
 
 	"github.com/nvr-ai/go-ml/benchmark"
 	"github.com/nvr-ai/go-ml/benchmark/engines"
+	"github.com/nvr-ai/go-ml/images"
 )
 
 func main() {
 	var (
-		configFile     = flag.String("config", "", "Path to benchmark configuration file")
-		scenarioFile   = flag.String("scenarios", "", "Path to scenario configuration file")
-		outputDir      = flag.String("output", "./benchmark_results", "Output directory for results")
-		testImages     = flag.String("images", "", "Path to test images directory or file")
-		modelPath      = flag.String("model", "", "Path to ONNX model file")
-		quick          = flag.Bool("quick", false, "Run quick benchmark scenarios")
-		comprehensive  = flag.Bool("comprehensive", false, "Run comprehensive benchmark scenarios")
-		resolutions    = flag.Bool("resolutions", false, "Compare different input resolutions")
-		formats        = flag.Bool("formats", false, "Compare different image formats")
-		timeout        = flag.Duration("timeout", 30*time.Minute, "Benchmark timeout duration")
+		configFile    = flag.String("config", "", "Path to benchmark configuration file")
+		scenarioFile  = flag.String("scenarios", "", "Path to scenario configuration file")
+		outputDir     = flag.String("output", "./benchmark_results", "Output directory for results")
+		testImages    = flag.String("images", "", "Path to test images directory or file")
+		modelPath     = flag.String("model", "", "Path to ONNX model file")
+		engineType    = flag.String("engine", "onnx", "Engine type to use for inference")
+		quick         = flag.Bool("quick", false, "Run quick benchmark scenarios")
+		comprehensive = flag.Bool("comprehensive", false, "Run comprehensive benchmark scenarios")
+		resolutions   = flag.Bool("resolutions", false, "Compare different input resolutions")
+		formats       = flag.Bool("formats", false, "Compare different image formats")
+		timeout       = flag.Duration("timeout", 30*time.Minute, "Benchmark timeout duration")
 	)
 	flag.Parse()
 
@@ -61,7 +63,7 @@ func main() {
 	}
 
 	// Load test images
-	err := suite.LoadTestImages(config.TestImagesPath, benchmark.FormatJPEG)
+	err := suite.LoadTestImages(config.TestImagesPath, images.FormatJPEG)
 	if err != nil {
 		log.Fatalf("Failed to load test images: %v", err)
 	}
@@ -69,7 +71,7 @@ func main() {
 	// Generate scenarios based on flags
 	predefined := &benchmark.PredefinedScenarios{}
 	modelPaths := make(map[benchmark.ModelType]string)
-	
+
 	// Convert string map to ModelType map
 	for key, path := range config.ModelPaths {
 		switch key {
@@ -146,10 +148,10 @@ func main() {
 	// Run benchmarks
 	fmt.Println("Starting benchmark execution...")
 	start := time.Now()
-	
+
 	// Ensure cleanup happens
 	defer engines.CleanupSessionCache()
-	
+
 	err = suite.RunAllScenarios(ctx)
 	if err != nil {
 		log.Fatalf("Benchmark execution failed: %v", err)
@@ -163,7 +165,7 @@ func main() {
 	fmt.Printf("\n=== BENCHMARK RESULTS SUMMARY ===\n")
 	fmt.Printf("Total scenarios: %d\n", len(results))
 	fmt.Printf("Results saved to: %s\n", *outputDir)
-	
+
 	// Find best performing scenario
 	var bestFPS float64
 	var bestScenario string
@@ -172,12 +174,12 @@ func main() {
 			bestFPS = result.FramesPerSecond
 			bestScenario = result.Scenario.Name
 		}
-		fmt.Printf("  %s: %.2f FPS (%.2f MB memory)\n", 
+		fmt.Printf("  %s: %.2f FPS (%.2f MB memory)\n",
 			result.Scenario.Name,
 			result.FramesPerSecond,
 			float64(result.MemoryStats.AllocBytes)/(1024*1024))
 	}
-	
+
 	fmt.Printf("\nBest performing scenario: %s (%.2f FPS)\n", bestScenario, bestFPS)
 }
 

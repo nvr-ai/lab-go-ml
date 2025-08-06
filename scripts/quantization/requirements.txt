@@ -1,0 +1,53 @@
+# ONNX Model Quantization Pipeline Dependencies
+
+# Core ONNX and quantization
+onnx>=1.15.0
+onnxruntime>=1.16.0
+onnxruntime-tools>=1.7.0
+
+# PyTorch ecosystem for model loading and comparison
+torch>=2.0.0
+torchvision>=0.15.0
+
+# Data processing and numerical computing
+numpy>=1.21.0
+pillow>=9.0.0
+opencv-python>=4.5.0
+
+# Dataset handling and utilities
+tqdm>=4.64.0
+pydantic>=2.0.0
+pyyaml>=6.0.0
+
+# Visualization and reporting
+matplotlib>=3.5.0
+seaborn>=0.11.0
+plotly>=5.0.0
+
+# Metrics and evaluation
+scikit-learn>=1.1.0
+scipy>=1.9.0
+
+# Logging and configuration
+loguru>=0.6.0
+hydra-core>=1.2.0
+omegaconf>=2.2.0
+
+# Development and testing
+pytest>=7.0.0
+pytest-cov>=4.0.0
+black>=22.0.0
+flake8>=5.0.0
+
+# Optional GPU acceleration
+# onnxruntime-gpu>=1.16.0  # Uncomment for GPU support
+# tensorrt>=8.0.0          # Uncomment for TensorRT support
+
+# Model-specific dependencies
+timm>=0.6.0              # For vision transformers and modern architectures
+transformers>=4.20.0     # For transformer-based models
+ultralytics>=8.0.0       # For YOLO models
+
+# Calibration dataset support
+datasets>=2.0.0          # HuggingFace datasets
+pycocotools>=2.0.0       # COCO dataset utilities

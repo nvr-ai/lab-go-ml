@@ -1,6 +1,7 @@
 {
   "output_dir": "./benchmark_results",
   "test_images_path": "../../ml/corpus/images/videos/freeway-view-22-seconds-1080p.mp4",
+  "engine": "openvino",
   "model_paths": {
     "yolo": "./data/yolov8n.onnx",
     "dfine": "./data/d-fine.onnx"

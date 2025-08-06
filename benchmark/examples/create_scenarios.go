@@ -5,12 +5,14 @@ import (
 	"log"
 
 	"github.com/nvr-ai/go-ml/benchmark"
+	"github.com/nvr-ai/go-ml/images"
+	"github.com/nvr-ai/go-ml/inference"
 )
 
 // Example program to create and save benchmark scenarios
 func main() {
 	predefined := &benchmark.PredefinedScenarios{}
-	
+
 	// Define model paths
 	modelPaths := map[benchmark.ModelType]string{
 		benchmark.ModelYOLO: "../data/yolov8n.onnx",
@@ -52,8 +54,9 @@ func main() {
 	// Create custom scenario using builder
 	customScenario := benchmark.NewScenarioBuilder("custom_high_res_webp").
 		WithModel(benchmark.ModelYOLO, "../data/yolov8n.onnx").
+		WithEngineType(inference.EngineOpenVINO).
 		WithResolution(1024, 1024).
-		WithImageFormat(benchmark.FormatWebP).
+		WithImageFormat(images.FormatWebP).
 		WithIterations(50).
 		WithWarmupRuns(5).
 		Build()

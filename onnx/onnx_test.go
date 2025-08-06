@@ -7,6 +7,9 @@ import (
 	"testing"
 
 	"github.com/nvr-ai/go-ml/images"
+	"github.com/nvr-ai/go-ml/inference"
+	"github.com/nvr-ai/go-ml/inference/detectors"
+	"github.com/nvr-ai/go-ml/inference/providers"
 	"github.com/nvr-ai/go-ml/util"
 	"github.com/stretchr/testify/assert"
 )
@@ -14,8 +17,8 @@ import (
 func TestNewONNXDetectorTest(t *testing.T) {
 	var err error
 
-	detector, err := NewSession(Config{
-		ModelPath:           "../data/yolov8n.onnx",
+	detector, err := detectors.NewSession(detectors.Config{
+		Provider:            providers.DefaultConfig(),
 		InputShape:          image.Point{X: 416, Y: 416},
 		ConfidenceThreshold: 0.5,
 		NMSThreshold:        0.5,
@@ -49,7 +52,7 @@ func TestNewONNXDetectorTest(t *testing.T) {
 		}
 
 		// Prepare the input for the ONNX model.
-		err = PrepareInput(resized, detector.Input)
+		err = inference.PrepareInput(resized, detector.Input)
 		if err != nil {
 			t.Fatalf("Failed to prepare input: %v", err)
 		}
@@ -60,7 +63,7 @@ func TestNewONNXDetectorTest(t *testing.T) {
 			t.Fatalf("Failed to run session: %v", err)
 		}
 
-		detections := ProcessInferenceOutput(detector.Output.GetData(), resized.Bounds().Canon().Dx(), resized.Bounds().Canon().Dy())
+		detections := inference.ProcessInferenceOutput(detector.Output.GetData(), resized.Bounds().Canon().Dx(), resized.Bounds().Canon().Dy())
 		fmt.Printf("Detected %d objects\n", len(detections))
 	}
 }

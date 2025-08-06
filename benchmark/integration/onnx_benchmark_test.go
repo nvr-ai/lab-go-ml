@@ -8,6 +8,7 @@ import (
 
 	"github.com/nvr-ai/go-ml/benchmark"
 	"github.com/nvr-ai/go-ml/benchmark/engines"
+	"github.com/nvr-ai/go-ml/images"
 )
 
 // BenchmarkONNXInference runs comprehensive benchmarks using the new framework
@@ -34,11 +35,11 @@ func BenchmarkONNXInference(b *testing.B) {
 	suite := benchmark.NewBenchmarkSuite(engines.NewONNXEngine(), "./benchmark_results")
 
 	// Load test images
-	err = suite.LoadTestImages("../../../../ml/corpus/images/videos/freeway-view-22-seconds-1080p.mp4", benchmark.FormatJPEG)
+	err = suite.LoadTestImages("../../../../ml/corpus/images/videos/freeway-view-22-seconds-1080p.mp4", images.FormatJPEG)
 	if err != nil {
 		b.Logf("Warning: Could not load test images from corpus, using fallback: %v", err)
 		// Try to create a simple test image if corpus not available
-		err = suite.LoadTestImages("../test_images", benchmark.FormatJPEG)
+		err = suite.LoadTestImages("../test_images", images.FormatJPEG)
 		if err != nil {
 			b.Skipf("No test images available: %v", err)
 			return
@@ -103,7 +104,7 @@ func BenchmarkResolutionComparison(b *testing.B) {
 
 	suite := benchmark.NewBenchmarkSuite(engines.NewONNXEngine(), "./benchmark_results")
 
-	err = suite.LoadTestImages("../../../../ml/corpus/images/videos/freeway-view-22-seconds-1080p.mp4", benchmark.FormatJPEG)
+	err = suite.LoadTestImages("../../../../ml/corpus/images/videos/freeway-view-22-seconds-1080p.mp4", images.FormatJPEG)
 	if err != nil {
 		b.Skipf("No test images available: %v", err)
 		return
@@ -151,7 +152,7 @@ func BenchmarkFormatComparison(b *testing.B) {
 	suite := benchmark.NewBenchmarkSuite(engines.NewONNXEngine(), "./benchmark_results")
 
 	// Test with different formats (we'll load the same images but process them as different formats)
-	formats := []benchmark.ImageFormat{benchmark.FormatJPEG, benchmark.FormatWebP, benchmark.FormatPNG}
+	formats := []images.ImageFormat{images.FormatJPEG, images.FormatWebP, images.FormatPNG}
 
 	for _, format := range formats {
 		err = suite.LoadTestImages("../../../../ml/corpus/images/videos/freeway-view-22-seconds-1080p.mp4", format)
