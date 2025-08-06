@@ -104,23 +104,22 @@ func (d *Detector) Process(detected bool, area float64) (report bool, status str
 	status = "Ready"
 
 	if detected {
-		// Motion detected in this frame
+		// Motion detected in this frame - report immediately
 		if !d.IsMotionActive {
 			// New motion started
 			d.MotionStartTime = &now
 			d.IsMotionActive = true
+			d.MotionEventCount++
 		}
 		d.LastMotionTime = now
 
-		// Check if motion has lasted long enough
+		// Report motion immediately when detected
+		report = true
 		if d.MotionStartTime != nil {
 			duration := now.Sub(*d.MotionStartTime)
-			if duration >= d.MinMotionDuration {
-				report = true
-				status = fmt.Sprintf("Motion: %.1fs | Area: %.0f", duration.Seconds(), area)
-			} else {
-				status = fmt.Sprintf("Motion: %.1fs (min: %.1fs)", duration.Seconds(), d.MinMotionDuration.Seconds())
-			}
+			status = fmt.Sprintf("Motion: %.1fs | Area: %.0f", duration.Seconds(), area)
+		} else {
+			status = fmt.Sprintf("Motion: 0.0s | Area: %.0f", area)
 		}
 	} else {
 		// No motion in this frame
@@ -128,12 +127,6 @@ func (d *Detector) Process(detected bool, area float64) (report bool, status str
 			// Check if motion has stopped (with some tolerance)
 			if time.Since(d.LastMotionTime) > 100*time.Millisecond {
 				// Motion ended
-				if d.MotionStartTime != nil {
-					duration := d.LastMotionTime.Sub(*d.MotionStartTime)
-					if duration >= d.MinMotionDuration {
-						d.MotionEventCount++
-					}
-				}
 				d.IsMotionActive = false
 				d.MotionStartTime = nil
 			}

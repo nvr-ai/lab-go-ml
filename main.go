@@ -23,11 +23,11 @@ const (
 	// deviceID is the ID of the video capture device to use.
 	deviceID = 0
 	// MinimumArea represents the minimum area threshold for motion detection.
-	MinimumArea = 300000
+	MinimumArea = 10000
 	// DefaultMinMotionDuration is the default minimum duration for motion events.
 	DefaultMinMotionDuration = 1500 * time.Millisecond
 	// Default ONNX model path
-	DefaultONNXModelPath = "yolov3u.onnx"
+	DefaultONNXModelPath = "ssd_mobilenet_v2_fpnlite_320x320_coco17_tpu-8.onnx"
 	// Default output directory for saved frames
 	DefaultOutputDir = "motion_frames"
 )
@@ -59,6 +59,7 @@ func main() {
 	var (
 		minDuration           time.Duration
 		onnxModelPath         string
+		configPath            string
 		confidenceThreshold   float64
 		outputDir             string
 		enableObjectDetection bool
@@ -66,18 +67,19 @@ func main() {
 		imagePath             string
 		showVisualization     bool
 		testMode              bool
-		useFastRCNN           bool
+		modelType             string
 	)
 	flag.DurationVar(&minDuration, "min-duration", DefaultMinMotionDuration, "Minimum motion duration before reporting")
-	flag.StringVar(&onnxModelPath, "onnx-model", DefaultONNXModelPath, "Path to YOLO ONNX model file")
+	flag.StringVar(&onnxModelPath, "onnx-model", DefaultONNXModelPath, "Path to SSD MobileNet v2 model file (.onnx or .pb)")
+	flag.StringVar(&configPath, "config-path", "", "Path to TensorFlow config file (.pbtxt) - required for .pb models")
 	flag.Float64Var(&confidenceThreshold, "confidence", 0.5, "Object detection confidence threshold")
 	flag.StringVar(&outputDir, "output-dir", DefaultOutputDir, "Output directory for saved frames")
 	flag.BoolVar(&enableObjectDetection, "object-detection", true, "Enable object detection verification")
 	flag.StringVar(&videoPath, "video", "", "Path to video file (.mp4, .avi, .mov)")
 	flag.StringVar(&imagePath, "image", "", "Path to image file (.jpg, .jpeg, .png, .bmp)")
 	flag.BoolVar(&showVisualization, "show-window", false, "Show visualization window")
-	flag.BoolVar(&testMode, "test-mode", false, "Test mode - bypass object detection to check if ONNX is causing issues")
-	flag.BoolVar(&useFastRCNN, "fastrcnn", false, "Use FastRCNN model instead of YOLO")
+	flag.BoolVar(&testMode, "test-mode", false, "Test mode - bypass object detection to check if model is causing issues")
+	flag.StringVar(&modelType, "model-type", "onnx", "Model type: 'onnx' or 'tensorflow'")
 	flag.Parse()
 
 	// Validate input flags
@@ -87,57 +89,81 @@ func main() {
 	}
 
 	// Initialize object detection if enabled
-	var objectDetector *onnx.ONNXDetector
-	var fastRCNNModel *onnx.FastRCNNModel
+	var ssdModel *onnx.SSDModel
 	if enableObjectDetection && !testMode {
-		var err error
-		if useFastRCNN {
-			// Initialize FastRCNN model
-			fastRCNNModel, err = onnx.NewFastRCNNModel(onnx.FastRCNNConfig{
-				ModelPath:           onnxModelPath,
-				InputShape:          image.Point{X: 800, Y: 600}, // FastRCNN typical input size
-				ConfidenceThreshold: float32(confidenceThreshold),
-				NMSThreshold:        0.3,
-				RelevantClasses:     []string{"person", "car", "truck", "bus", "motorcycle", "bicycle"},
-			})
-			if err != nil {
-				fmt.Printf("⚠️  Warning: Failed to initialize FastRCNN model: %v\n", err)
-				fmt.Printf("💡 This could be due to:\n")
-				fmt.Printf("   - Incompatible FastRCNN model format\n")
-				fmt.Printf("   - Missing OpenCV DNN support\n")
-				fmt.Printf("   - Corrupted model file\n")
-				fmt.Printf("   - Insufficient system resources\n")
-				fmt.Printf("🔄 Continuing with motion detection only...\n")
-				enableObjectDetection = false
-			} else {
-				defer fastRCNNModel.Close()
-				fmt.Printf("✅ FastRCNN model initialized successfully\n")
-				fmt.Printf("Model loaded successfully: %s\n", onnxModelPath)
-			}
+		// Check if model file exists
+		if _, err := os.Stat(onnxModelPath); os.IsNotExist(err) {
+			fmt.Printf("⚠️  Warning: SSD MobileNet v2 model file not found: %s\n", onnxModelPath)
+			fmt.Printf("💡 Please ensure the model file exists in the current directory\n")
+			fmt.Printf("🔄 Continuing with motion detection only...\n")
+			enableObjectDetection = false
+			ssdModel = nil
 		} else {
-			// Initialize YOLO model
-			objectDetector, err = onnx.NewONNXDetector(onnx.Config{
-				ModelPath:           onnxModelPath,
-				InputShape:          image.Point{X: 416, Y: 416},
-				ConfidenceThreshold: float32(confidenceThreshold),
-				NMSThreshold:        0.5,
-				RelevantClasses:     []string{"person", "car", "truck", "bus", "motorcycle", "bicycle"},
-			})
+			var err error
+			// Initialize SSD MobileNet v2 model with panic recovery
+			fmt.Printf("🔄 Initializing SSD MobileNet v2 model from: %s\n", onnxModelPath)
+			
+			// Wrap the model initialization in panic recovery
+			func() {
+				defer func() {
+					if r := recover(); r != nil {
+						err = fmt.Errorf("panic during SSD MobileNet v2 model initialization: %v", r)
+						fmt.Printf("⚠️  Panic during SSD MobileNet v2 model initialization: %v\n", r)
+					}
+				}()
+				
+				// Set default model type to onnx if not specified
+				if modelType == "" {
+					modelType = "onnx"
+				}
+				
+				// Determine input shape
+				inputShape := image.Point{X: 320, Y: 320} // Default for ONNX
+				if modelType == "onnx" {
+					// For ONNX models, try common input sizes
+					// SSD MobileNet v2 FPNLite 320x320 uses 320x320 input
+					inputShape = image.Point{X: 320, Y: 320} // Specific ONNX size
+				}
+				
+				// Initialize SSD model using OpenCV DNN
+				ssdModel, err = onnx.NewSSDModel(onnx.SSDConfig{
+					ModelPath:           onnxModelPath,
+					ConfigPath:          configPath,
+					InputShape:          inputShape,
+					ConfidenceThreshold: float32(confidenceThreshold),
+					NMSThreshold:        0.3,
+					RelevantClasses:     []string{"person", "car", "truck", "bus", "motorcycle", "bicycle"},
+					ModelType:           modelType,
+				})
+			}()
+			
 			if err != nil {
-				fmt.Printf("⚠️  Warning: Failed to initialize object detector: %v\n", err)
+				fmt.Printf("⚠️  Warning: Failed to initialize SSD MobileNet v2 model: %v\n", err)
 				fmt.Printf("💡 This could be due to:\n")
-				fmt.Printf("   - Incompatible ONNX model format\n")
+				fmt.Printf("   - Incompatible model format\n")
 				fmt.Printf("   - Missing OpenCV DNN support\n")
 				fmt.Printf("   - Corrupted model file\n")
 				fmt.Printf("   - Insufficient system resources\n")
+				fmt.Printf("   - Missing config file (for TensorFlow models)\n")
 				fmt.Printf("🔄 Continuing with motion detection only...\n")
 				enableObjectDetection = false
+				ssdModel = nil
 			} else {
-				defer objectDetector.Close()
-				fmt.Printf("✅ Object detector initialized successfully\n")
-				fmt.Printf("Model loaded successfully: yolov3u.onnx\n")
+				defer ssdModel.Close()
+				fmt.Printf("✅ SSD MobileNet v2 model initialized successfully\n")
+				fmt.Printf("🎯 Model loaded successfully: %s\n", onnxModelPath)
+				fmt.Printf("📊 Model configuration:\n")
+				fmt.Printf("   - Input shape: %dx%d\n", ssdModel.GetModelInfo()["input_shape"].(image.Point).X, ssdModel.GetModelInfo()["input_shape"].(image.Point).Y)
+				fmt.Printf("   - Confidence threshold: %.2f\n", confidenceThreshold)
+				fmt.Printf("   - NMS threshold: 0.3\n")
+				fmt.Printf("   - Model type: %s\n", modelType)
+				fmt.Printf("   - Relevant classes: person, car, truck, bus, motorcycle, bicycle\n")
 			}
 		}
+	} else if testMode {
+		fmt.Printf("🧪 Test mode enabled - Object detection bypassed\n")
+	} else {
+		fmt.Printf("❌ Object detection disabled\n")
 	}
 
 	// Create output directory if it doesn't exist
@@ -160,15 +186,29 @@ func main() {
 		fmt.Printf("Starting motion detection on camera device: %v\n", inputConfig.DeviceID)
 	case InputVideo:
 		var err error
+		fmt.Printf("🔄 Opening video file: %s\n", inputConfig.Path)
 		webcam, err = gocv.OpenVideoCapture(inputConfig.Path)
 		if err != nil {
 			log.Fatalf("Error opening video file: %v", inputConfig.Path)
 		}
-		fmt.Printf("Processing video: %s\n", inputConfig.Path)
+		fmt.Printf("✅ Video file opened successfully: %s\n", inputConfig.Path)
+		
+		// Get video properties
+		fps := webcam.Get(gocv.VideoCaptureFPS)
+		frameCount := webcam.Get(gocv.VideoCaptureFrameCount)
+		width := webcam.Get(gocv.VideoCaptureFrameWidth)
+		height := webcam.Get(gocv.VideoCaptureFrameHeight)
+		
+		fmt.Printf("📹 Video properties:\n")
+		fmt.Printf("   - FPS: %.2f\n", fps)
+		fmt.Printf("   - Total frames: %.0f\n", frameCount)
+		fmt.Printf("   - Resolution: %.0fx%.0f\n", width, height)
+		fmt.Printf("   - Duration: %.2f seconds\n", frameCount/fps)
+		
 	case InputImage:
 		fmt.Printf("Processing image: %s\n", inputConfig.Path)
 		// For image processing, we'll handle it differently
-		processImage(inputConfig.Path, objectDetector, enableObjectDetection, outputDir, onnxModelPath, confidenceThreshold)
+		processImage(inputConfig.Path, ssdModel, enableObjectDetection, outputDir, onnxModelPath, confidenceThreshold)
 		return
 	}
 	defer webcam.Close()
@@ -252,6 +292,7 @@ func main() {
 	}
 
 	frameCounter := 0
+	fmt.Printf("\n🎬 Starting video processing...\n")
 	for {
 		// Time the frame processing.
 		frameStart := time.Now()
@@ -260,15 +301,23 @@ func main() {
 		// Read the next frame from the video capture device.
 		if ok := webcam.Read(&img); !ok {
 			if inputConfig.Type == InputVideo {
-				fmt.Printf("End of video file: %v\n", inputConfig.Path)
+				fmt.Printf("🎬 End of video file reached: %v\n", inputConfig.Path)
+				fmt.Printf("📊 Total frames processed: %d\n", frameCounter)
 			} else {
 				fmt.Printf("Device closed: %v\n", inputConfig.DeviceID)
 			}
 			return
 		}
 		if img.Empty() {
+			fmt.Printf("⚠️  Empty frame detected at frame %d, skipping...\n", frameCounter)
 			stopTiming()
 			continue
+		}
+
+		// Debug: Print frame info every 10 frames
+		if frameCounter%10 == 0 {
+			currentPos := webcam.Get(gocv.VideoCapturePosFrames)
+			fmt.Printf("🎬 Processing frame %d (position: %.0f, size: %dx%d)\n", frameCounter, currentPos, img.Cols(), img.Rows())
 		}
 
 		// Apply background subtraction to get foreground out of the current frame.
@@ -319,7 +368,9 @@ func main() {
 		var relevantObjectsDetected bool
 		var detectedObjects []string
 		if enableObjectDetection && !testMode && motionDetected && len(motionROIs) > 0 {
-			relevantObjectsDetected, detectedObjects = processMotionROIs(img, motionROIs, objectDetector, frameCounter, outputDir)
+			if ssdModel != nil {
+				relevantObjectsDetected, detectedObjects = processMotionROIsSSD(img, motionROIs, ssdModel, frameCounter, outputDir)
+			}
 		}
 
 		// Draw contours and bounding boxes for significant motion.
@@ -398,6 +449,9 @@ func main() {
 		}
 
 		frameCounter++
+		
+		// Remove the delay that might be causing issues
+		// time.Sleep(10 * time.Millisecond)
 	}
 }
 
@@ -450,7 +504,7 @@ func validateFile(filePath string, supportedExtensions []string) error {
 }
 
 // processImage processes a single image file
-func processImage(imagePath string, objectDetector *onnx.ONNXDetector, enableObjectDetection bool, outputDir, onnxModelPath string, confidenceThreshold float64) {
+func processImage(imagePath string, ssdModel *onnx.SSDModel, enableObjectDetection bool, outputDir, onnxModelPath string, confidenceThreshold float64) {
 	// Load the image
 	img := gocv.IMRead(imagePath, gocv.IMReadColor)
 	if img.Empty() {
@@ -461,9 +515,9 @@ func processImage(imagePath string, objectDetector *onnx.ONNXDetector, enableObj
 	fmt.Printf("Processing image: %s\n", imagePath)
 	fmt.Printf("Image size: %dx%d\n", img.Cols(), img.Rows())
 
-	if enableObjectDetection && objectDetector != nil {
+	if enableObjectDetection && ssdModel != nil {
 		// Run object detection on the entire image
-		detections, err := objectDetector.Detect(img)
+		detections, err := ssdModel.Detect(img)
 		if err != nil {
 			fmt.Printf("Error detecting objects: %v\n", err)
 		} else {
@@ -471,7 +525,7 @@ func processImage(imagePath string, objectDetector *onnx.ONNXDetector, enableObj
 
 			// Process detections
 			for i, detection := range detections {
-				if objectDetector.IsRelevantClass(detection.ClassName) {
+				if ssdModel.IsRelevantClass(detection.ClassName) {
 					fmt.Printf("Object %d: %s (confidence: %.2f) at %v\n",
 						i+1, detection.ClassName, detection.Score, detection.Box)
 
@@ -493,8 +547,8 @@ func processImage(imagePath string, objectDetector *onnx.ONNXDetector, enableObj
 	}
 }
 
-// processMotionROIs runs object detection on motion regions of interest
-func processMotionROIs(img gocv.Mat, motionROIs []image.Rectangle, detector *onnx.ONNXDetector, frameCounter int, outputDir string) (bool, []string) {
+// processMotionROIsSSD runs object detection on motion regions of interest using SSD MobileNet v2
+func processMotionROIsSSD(img gocv.Mat, motionROIs []image.Rectangle, ssdModel *onnx.SSDModel, frameCounter int, outputDir string) (bool, []string) {
 	var relevantObjectsDetected bool
 	var detectedObjects []string
 	objectCount := make(map[string]int)
@@ -515,7 +569,7 @@ func processMotionROIs(img gocv.Mat, motionROIs []image.Rectangle, detector *onn
 
 		for _, roi := range motionROIs {
 			// Run object detection on the ROI with timeout
-			detections, err := detector.DetectROI(img, roi)
+			detections, err := ssdModel.DetectROI(img, roi)
 			if err != nil {
 				fmt.Printf("⚠️  Error detecting objects in ROI: %v\n", err)
 				continue
@@ -523,7 +577,7 @@ func processMotionROIs(img gocv.Mat, motionROIs []image.Rectangle, detector *onn
 
 			// Check if any relevant objects were detected
 			for _, detection := range detections {
-				if detector.IsRelevantClass(detection.ClassName) {
+				if ssdModel.IsRelevantClass(detection.ClassName) {
 					relevantObjectsDetected = true
 					objectCount[detection.ClassName]++
 
