@@ -41,6 +41,10 @@ func (m *MockInferenceEngine) GetModelInfo() map[string]interface{} {
 	}
 }
 
+func (m *MockInferenceEngine) WarmUp(runs int) error {
+	return nil
+}
+
 func TestNewBenchmarkSuite(t *testing.T) {
 	engine := &MockInferenceEngine{}
 	outputDir := "./test_output"

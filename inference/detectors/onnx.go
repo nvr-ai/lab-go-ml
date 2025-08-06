@@ -10,20 +10,14 @@ import (
 	"sort"
 	"sync"
 
+	"github.com/nvr-ai/go-ml/images"
 	"github.com/nvr-ai/go-ml/inference"
 	"github.com/nvr-ai/go-ml/inference/providers"
+	"github.com/nvr-ai/go-ml/models"
 	ort "github.com/yalue/onnxruntime_go"
 
 	"gocv.io/x/gocv"
 )
-
-// ObjectDetectionResult represents a detected object
-type ObjectDetectionResult struct {
-	Box       image.Rectangle
-	Score     float32
-	ClassID   int
-	ClassName string
-}
 
 // ONNXDetector handles ONNX model inference using gocv.ReadNet()
 type ONNXDetector struct {
@@ -142,11 +136,11 @@ func (oe *ONNXDetector) Predict(ctx context.Context, img image.Image) (interface
 	}
 
 	// Get the target input shape from config for preprocessing
-	inputShape, ok := oe.inputShape.X, oe.inputShape.Y
+	inputWidth, inputHeight := oe.inputShape.X, oe.inputShape.Y
 	var targetImg image.Image = img
 
 	// If a specific input shape is configured, resize to that first (this simulates preprocessing overhead)
-	if ok && len(inputShape) == 2 && (inputShape[0] != img.Bounds().Dx() || inputShape[1] != img.Bounds().Dy()) {
+	if inputWidth > 0 && inputHeight > 0 && (inputWidth != img.Bounds().Dx() || inputHeight != img.Bounds().Dy()) {
 		// This step simulates the preprocessing cost of resizing to the target resolution
 		// In a real scenario, this would be the desired inference resolution
 		// For benchmarking, we measure this cost separately from the ONNX model input preparation
@@ -166,7 +160,7 @@ func (oe *ONNXDetector) Predict(ctx context.Context, img image.Image) (interface
 	}
 
 	// Process output - use original image dimensions for scaling
-	detections := inference.ProcessInferenceOutput(
+	detections := ProcessInferenceOutput(
 		oe.session.Output.GetData(),
 		img.Bounds().Dx(),
 		img.Bounds().Dy(),
@@ -183,7 +177,7 @@ func (oe *ONNXDetector) Predict(ctx context.Context, img image.Image) (interface
 // Returns:
 //   - []ObjectDetectionResult: The detected objects.
 //   - error: An error if the detection fails.
-func (oe *ONNXDetector) Detect(img gocv.Mat) ([]ObjectDetectionResult, error) {
+func (oe *ONNXDetector) Detect(img gocv.Mat) ([]Result, error) {
 	oe.mu.RLock()
 	defer oe.mu.RUnlock()
 
@@ -207,7 +201,7 @@ func (oe *ONNXDetector) Detect(img gocv.Mat) ([]ObjectDetectionResult, error) {
 }
 
 // DetectROI runs inference on a specific region of interest
-func (oe *ONNXDetector) DetectROI(img gocv.Mat, roi image.Rectangle) ([]ObjectDetectionResult, error) {
+func (oe *ONNXDetector) DetectROI(img gocv.Mat, roi image.Rectangle) ([]Result, error) {
 	// Extract the ROI from the image
 	roiMat := img.Region(roi)
 	defer roiMat.Close()
@@ -218,10 +212,11 @@ func (oe *ONNXDetector) DetectROI(img gocv.Mat, roi image.Rectangle) ([]ObjectDe
 		return nil, err
 	}
 
+	// TODO: Adjust bounding box coordinates to original image space.
 	// Adjust bounding box coordinates to original image space
-	for i := range detections {
-		detections[i].Box = detections[i].Box.Add(roi.Min)
-	}
+	// for i := range detections {
+	// 	detections[i].Box = detections[i].Box.Add(roi.Min)
+	// }
 
 	return detections, nil
 }
@@ -240,8 +235,8 @@ func (oe *ONNXDetector) preprocessImage(img gocv.Mat) gocv.Mat {
 }
 
 // postprocessOutputs processes the model outputs to extract detections
-func (oe *ONNXDetector) postprocessOutputs(outputs gocv.Mat, originalSize image.Point) []ObjectDetectionResult {
-	var detections []ObjectDetectionResult
+func (oe *ONNXDetector) postprocessOutputs(outputs gocv.Mat, originalSize image.Point) []Result {
+	var detections []Result
 
 	// Get output dimensions
 	rows := outputs.Rows()
@@ -319,11 +314,10 @@ func (oe *ONNXDetector) postprocessOutputs(outputs gocv.Mat, originalSize image.
 		y2 = min(originalSize.Y, y2)
 
 		// Create detection
-		detection := ObjectDetectionResult{
-			Box:       image.Rect(x1, y1, x2, y2),
-			Score:     finalConfidence,
-			ClassID:   classID,
-			ClassName: oe.getClassByID(classID),
+		detection := Result{
+			Box:   images.Rect{X1: x1, Y1: y1, X2: x2, Y2: y2},
+			Score: float64(finalConfidence),
+			Class: models.COCOClasses.Classes[classID],
 		}
 
 		detections = append(detections, detection)
@@ -336,7 +330,7 @@ func (oe *ONNXDetector) postprocessOutputs(outputs gocv.Mat, originalSize image.
 }
 
 // applyNMS applies Non-Maximum Suppression to remove overlapping detections
-func (oe *ONNXDetector) applyNMS(detections []ObjectDetectionResult) []ObjectDetectionResult {
+func (oe *ONNXDetector) applyNMS(detections []Result) []Result {
 	if len(detections) == 0 {
 		return detections
 	}
@@ -346,7 +340,7 @@ func (oe *ONNXDetector) applyNMS(detections []ObjectDetectionResult) []ObjectDet
 		return detections[i].Score > detections[j].Score
 	})
 
-	var result []ObjectDetectionResult
+	var result []Result
 	used := make([]bool, len(detections))
 
 	for i := 0; i < len(detections); i++ {
@@ -364,7 +358,7 @@ func (oe *ONNXDetector) applyNMS(detections []ObjectDetectionResult) []ObjectDet
 			}
 
 			// Calculate IoU
-			iou := calculateIoU(detections[i].Box, detections[j].Box)
+			iou := images.CalculateIoU(detections[i].Box, detections[j].Box)
 			if iou > oe.nmsThreshold {
 				used[j] = true
 			}
@@ -376,8 +370,8 @@ func (oe *ONNXDetector) applyNMS(detections []ObjectDetectionResult) []ObjectDet
 
 // getClassByID returns the class name for a given class ID
 func (oe *ONNXDetector) getClassByID(classID int) string {
-	if classID >= 0 && classID < len(COCOClasses) {
-		return COCOClasses[classID]
+	if classID >= 0 && classID < len(models.COCOClasses.Classes) {
+		return models.COCOClasses.Classes[classID].Name
 	}
 	return fmt.Sprintf("unknown_%d", classID)
 }
@@ -401,7 +395,7 @@ func (oe *ONNXDetector) GetModelInfo() map[string]interface{} {
 		"input_shape":          oe.inputShape,
 		"confidence_threshold": oe.confidenceThreshold,
 		"nms_threshold":        oe.nmsThreshold,
-		"relevant_classes":     oe.GetRelevantClasses(),
+		"relevant_classes":     oe.relevantClasses,
 		"initialized":          oe.initialized,
 		"output_layers":        oe.outputNames,
 		"classes":              oe.relevantClasses,

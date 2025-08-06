@@ -10,19 +10,20 @@ import (
 
 	"github.com/nvr-ai/go-ml/benchmark"
 	"github.com/nvr-ai/go-ml/inference"
-	"github.com/nvr-ai/go-ml/onnx"
+	"github.com/nvr-ai/go-ml/inference/detectors"
+	"github.com/nvr-ai/go-ml/inference/providers"
 )
 
 var (
 	// Global session manager to handle ONNX runtime initialization
-	globalSession *onnx.Session
+	globalSession *inference.Session
 	sessionMutex  sync.RWMutex
 	sessionInit   sync.Once
 )
 
 // ONNXEngine implements the InferenceEngine interface for ONNX models
 type ONNXEngine struct {
-	session   *onnx.Session
+	session   *inference.Session
 	modelPath string
 	modelType benchmark.ModelType
 	config    map[string]interface{}
@@ -43,8 +44,10 @@ func (oe *ONNXEngine) LoadModel(modelPath string, config map[string]interface{})
 	var initErr error
 	sessionInit.Do(func() {
 		// Build ONNX config - use fixed 640x640 input shape since that's what the model expects
-		onnxConfig := onnx.Config{
-			ModelPath:           modelPath,
+		onnxConfig := detectors.Config{
+			Provider: providers.Config{
+				ModelPath: modelPath,
+			},
 			InputShape:          image.Point{X: 640, Y: 640}, // Fixed to match model expectations
 			ConfidenceThreshold: 0.5,
 			NMSThreshold:        0.4,
@@ -52,7 +55,7 @@ func (oe *ONNXEngine) LoadModel(modelPath string, config map[string]interface{})
 		}
 
 		// Create ONNX session
-		session, err := onnx.NewSession(onnxConfig)
+		session, err := detectors.NewSession(onnxConfig)
 		if err != nil {
 			initErr = fmt.Errorf("failed to create ONNX session: %w", err)
 			return
@@ -136,11 +139,11 @@ func (oe *ONNXEngine) Predict(ctx context.Context, img image.Image) (interface{}
 	}
 
 	// Get the target input shape from config for preprocessing
-	inputShape, ok := oe.config["input_shape"].([]int)
+	inputWidth, inputHeight := oe.config["input_shape"].(image.Point).X, oe.config["input_shape"].(image.Point).Y
 	var targetImg image.Image = img
 
 	// If a specific input shape is configured, resize to that first (this simulates preprocessing overhead)
-	if ok && len(inputShape) == 2 && (inputShape[0] != img.Bounds().Dx() || inputShape[1] != img.Bounds().Dy()) {
+	if inputWidth > 0 && inputHeight > 0 && (inputWidth != img.Bounds().Dx() || inputHeight != img.Bounds().Dy()) {
 		// This step simulates the preprocessing cost of resizing to the target resolution
 		// In a real scenario, this would be the desired inference resolution
 		// For benchmarking, we measure this cost separately from the ONNX model input preparation
@@ -160,13 +163,24 @@ func (oe *ONNXEngine) Predict(ctx context.Context, img image.Image) (interface{}
 	}
 
 	// Process output - use original image dimensions for scaling
-	detections := onnx.ProcessInferenceOutput(
+	detections := detectors.ProcessInferenceOutput(
 		oe.session.Output.GetData(),
 		img.Bounds().Dx(),
 		img.Bounds().Dy(),
 	)
 
 	return detections, nil
+}
+
+// WarmUp runs inference on a set of images to warm up the model
+func (oe *ONNXEngine) WarmUp(runs int) error {
+	for i := 0; i < runs; i++ {
+		_, err := oe.Predict(context.Background(), image.NewRGBA(image.Rect(0, 0, 640, 640)))
+		if err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 // Close cleans up the ONNX session and resources
@@ -209,9 +223,9 @@ func CountONNXDetections(result interface{}) int {
 	}
 
 	switch detections := result.(type) {
-	case []onnx.ObjectDetectionResult:
+	case []detectors.Result:
 		return len(detections)
-	case []*onnx.ObjectDetectionResult:
+	case []*detectors.Result:
 		return len(detections)
 	default:
 		// Use generic detection counting

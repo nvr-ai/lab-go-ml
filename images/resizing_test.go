@@ -164,9 +164,9 @@ func TestResizeImageToImage(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			imageBytes := tt.getBytes(t)
-			
+
 			img, err := ResizeImageToImage(imageBytes, tt.targetW, tt.targetH, tt.format)
-			
+
 			if tt.shouldFail {
 				assert.Error(t, err)
 				assert.Nil(t, img)
@@ -191,7 +191,7 @@ func TestResizeImageToImageEdgeCases(t *testing.T) {
 	assert.Contains(t, err.Error(), "empty image data")
 
 	// Test unsupported format
-	img, err = ResizeImageToImage(jpegBytes, 50, 50, ImageFormat(999))
+	img, err = ResizeImageToImage(jpegBytes, 50, 50, FormatJPEG)
 	assert.Error(t, err, "Should error with unsupported format")
 	assert.Nil(t, img)
 	assert.Contains(t, err.Error(), "unsupported image format")
@@ -200,7 +200,7 @@ func TestResizeImageToImageEdgeCases(t *testing.T) {
 // Benchmark tests for performance comparison between formats
 func BenchmarkResizeJPEG(b *testing.B) {
 	jpegBytes := getJPEGBytes(&testing.T{})
-	
+
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
 		img, err := ResizeJPEGToImage(jpegBytes, 224, 224)
@@ -213,7 +213,7 @@ func BenchmarkResizeJPEG(b *testing.B) {
 
 func BenchmarkResizeWebP(b *testing.B) {
 	webpBytes := getWebPBytes(&testing.T{})
-	
+
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
 		img, err := ResizeWebPToImage(webpBytes, 224, 224)
@@ -226,7 +226,7 @@ func BenchmarkResizeWebP(b *testing.B) {
 
 func BenchmarkResizePNG(b *testing.B) {
 	pngBytes := getPNGBytes(&testing.T{})
-	
+
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
 		img, err := ResizePNGToImage(pngBytes, 224, 224)
@@ -252,7 +252,7 @@ func BenchmarkResizeImageToImage(b *testing.B) {
 	for _, tt := range tests {
 		b.Run(tt.name, func(b *testing.B) {
 			imageBytes := tt.getBytes(&testing.T{})
-			
+
 			b.ResetTimer()
 			for i := 0; i < b.N; i++ {
 				img, err := ResizeImageToImage(imageBytes, 224, 224, tt.format)

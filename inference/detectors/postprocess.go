@@ -1,18 +1,18 @@
-package inference
+package detectors
 
 import (
 	"sort"
 
 	"github.com/nvr-ai/go-ml/common"
+	"github.com/nvr-ai/go-ml/images"
 	"github.com/nvr-ai/go-ml/models"
 )
 
 // InferenceResult holds a single detection’s output.
-type InferenceResult struct {
-	ClassIdx int
-	Score    float32
-	BBox     [4]float32 // [x1, y1, x2, y2]
-	Label    string
+type Result struct {
+	Class models.OutputClass
+	Score float64
+	Box   images.Rect
 }
 
 func ProcessInferenceOutput(output []float32, originalWidth,

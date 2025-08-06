@@ -2,8 +2,14 @@
 
 
 
-## Image Formats
+https://docs.ultralytics.com/guides/optimizing-openvino-latency-vs-throughput-modes/
 
+https://docs.ultralytics.com/integrations/openvino
+
+- OpenVINO Performance Hints: Use OpenVINO's ov::hint::PerformanceMode::LATENCY during model compilation for simplified, device-agnostic tuning.
+- config = {hints.performance_mode: hints.PerformanceMode.THROUGHPUT}
+
+## Image Formats
 
 ### Format Performance (224x224 resize):
 
@@ -17,5 +23,3 @@
 * 224x224: 2.53ms (98KB memory)
 * 512x512: 8.97ms (413KB memory)
 * 1024x1024: 30.08ms (1.6MB memory)
-
-

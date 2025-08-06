@@ -1,3 +1,4 @@
+// Package images - Image processing utilities
 package images
 
 import (
@@ -182,6 +183,6 @@ func ResizeImageToImage(imageBytes []byte, width, height int, format ImageFormat
 	case FormatPNG:
 		return ResizePNGToImage(imageBytes, width, height)
 	default:
-		return nil, fmt.Errorf("unsupported image format: %d", format)
+		return nil, fmt.Errorf("unsupported image format: %+v", format)
 	}
 }

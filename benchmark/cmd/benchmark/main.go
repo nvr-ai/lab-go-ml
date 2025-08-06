@@ -16,12 +16,12 @@ import (
 
 func main() {
 	var (
-		configFile    = flag.String("config", "", "Path to benchmark configuration file")
-		scenarioFile  = flag.String("scenarios", "", "Path to scenario configuration file")
-		outputDir     = flag.String("output", "./benchmark_results", "Output directory for results")
-		testImages    = flag.String("images", "", "Path to test images directory or file")
-		modelPath     = flag.String("model", "", "Path to ONNX model file")
-		engineType    = flag.String("engine", "onnx", "Engine type to use for inference")
+		configFile   = flag.String("config", "", "Path to benchmark configuration file")
+		scenarioFile = flag.String("scenarios", "", "Path to scenario configuration file")
+		outputDir    = flag.String("output", "./benchmark_results", "Output directory for results")
+		testImages   = flag.String("images", "", "Path to test images directory or file")
+		modelPath    = flag.String("model", "", "Path to ONNX model file")
+		// engineType    = flag.String("engine", "onnx", "Engine type to use for inference")
 		quick         = flag.Bool("quick", false, "Run quick benchmark scenarios")
 		comprehensive = flag.Bool("comprehensive", false, "Run comprehensive benchmark scenarios")
 		resolutions   = flag.Bool("resolutions", false, "Compare different input resolutions")
