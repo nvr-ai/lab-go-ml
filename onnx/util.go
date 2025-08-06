@@ -9,7 +9,7 @@ import (
 	"sort"
 
 	"github.com/nfnt/resize"
-	"github.com/nvr-ai/go-ml/inference"
+	"github.com/nvr-ai/go-ml/common"
 	ort "github.com/yalue/onnxruntime_go"
 )
 
@@ -151,8 +151,8 @@ func PrepareInput(img image.Image, dst *ort.Tensor[float32]) error {
 
 func ProcessInferenceOutput(output []float32, originalWidth,
 	originalHeight int,
-) []inference.BoundingBox {
-	boundingBoxes := make([]inference.BoundingBox, 0, 8400)
+) []common.BoundingBox {
+	boundingBoxes := make([]common.BoundingBox, 0, 8400)
 
 	var classID int
 	var probability float32
@@ -183,7 +183,7 @@ func ProcessInferenceOutput(output []float32, originalWidth,
 		y2 := (yc + h/2) / 640 * float32(originalHeight)
 
 		// Append the bounding box to the result
-		boundingBoxes = append(boundingBoxes, inference.BoundingBox{
+		boundingBoxes = append(boundingBoxes, common.BoundingBox{
 			Label:      yoloClasses[classID],
 			Confidence: probability,
 			X1:         x1,
@@ -199,7 +199,7 @@ func ProcessInferenceOutput(output []float32, originalWidth,
 	})
 
 	// Define a slice to hold the final result
-	mergedResults := make([]inference.BoundingBox, 0, len(boundingBoxes))
+	mergedResults := make([]common.BoundingBox, 0, len(boundingBoxes))
 
 	// Iterate through sorted bounding boxes, removing overlaps
 	for _, candidateBox := range boundingBoxes {

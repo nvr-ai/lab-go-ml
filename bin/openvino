@@ -23,6 +23,7 @@ time cmake -S . \
 time cmake \
   --build build-macos \
   --target install \
+  --install-prefix asdf \
   -j$(sysctl -n hw.logicalcpu)
 
 #   --use_coreml \

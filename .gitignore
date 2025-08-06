@@ -1,7 +1,13 @@
 tmp
+
+# Test related files and artifacts.
 corpus
 **/*results*
 **/*.mp4
+
+# Build related files and artifacts.
 **/*.onnx
+**/build
+**/repo
 onnxruntime
 third_party

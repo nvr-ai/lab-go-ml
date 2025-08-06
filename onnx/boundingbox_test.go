@@ -10,7 +10,7 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/nvr-ai/go-ml/inference"
+	"github.com/nvr-ai/go-ml/common"
 	"github.com/nvr-ai/go-ml/models/dfine"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -28,12 +28,12 @@ func TestBoundingBoxString(t *testing.T) {
 	// Welcome! This test helps ensure our detection results are displayed clearly.
 	tests := []struct {
 		name     string
-		box      inference.BoundingBox
+		box      common.BoundingBox
 		expected string
 	}{
 		{
 			name: "person detection with high confidence",
-			box: inference.BoundingBox{
+			box: common.BoundingBox{
 				Label:      "person",
 				Confidence: 0.95,
 				X1:         100.123,
@@ -45,7 +45,7 @@ func TestBoundingBoxString(t *testing.T) {
 		},
 		{
 			name: "car detection with medium confidence",
-			box: inference.BoundingBox{
+			box: common.BoundingBox{
 				Label:      "car",
 				Confidence: 0.75,
 				X1:         0,
@@ -57,7 +57,7 @@ func TestBoundingBoxString(t *testing.T) {
 		},
 		{
 			name: "edge case with very small confidence",
-			box: inference.BoundingBox{
+			box: common.BoundingBox{
 				Label:      "bicycle",
 				Confidence: 0.001,
 				X1:         -10,
@@ -89,12 +89,12 @@ func TestBoundingBoxToRect(t *testing.T) {
 	// Let's make sure our coordinate conversions work perfectly!
 	tests := []struct {
 		name     string
-		box      inference.BoundingBox
+		box      common.BoundingBox
 		expected image.Rectangle
 	}{
 		{
 			name: "standard conversion",
-			box: inference.BoundingBox{
+			box: common.BoundingBox{
 				X1: 10.4,
 				Y1: 20.6,
 				X2: 100.8,
@@ -104,7 +104,7 @@ func TestBoundingBoxToRect(t *testing.T) {
 		},
 		{
 			name: "handles negative coordinates",
-			box: inference.BoundingBox{
+			box: common.BoundingBox{
 				X1: -10.5,
 				Y1: -20.5,
 				X2: 50.5,
@@ -114,7 +114,7 @@ func TestBoundingBoxToRect(t *testing.T) {
 		},
 		{
 			name: "ensures canonical form",
-			box: inference.BoundingBox{
+			box: common.BoundingBox{
 				X1: 100,
 				Y1: 100,
 				X2: 0,
@@ -144,32 +144,32 @@ func TestBoundingBoxIntersection(t *testing.T) {
 	// Testing intersection calculations - essential for removing duplicate detections!
 	tests := []struct {
 		name         string
-		box1         inference.BoundingBox
-		box2         inference.BoundingBox
+		box1         common.BoundingBox
+		box2         common.BoundingBox
 		expectedArea float32
 	}{
 		{
 			name:         "50% overlap",
-			box1:         inference.BoundingBox{X1: 0, Y1: 0, X2: 100, Y2: 100},
-			box2:         inference.BoundingBox{X1: 50, Y1: 50, X2: 150, Y2: 150},
+			box1:         common.BoundingBox{X1: 0, Y1: 0, X2: 100, Y2: 100},
+			box2:         common.BoundingBox{X1: 50, Y1: 50, X2: 150, Y2: 150},
 			expectedArea: 2500, // 50x50 overlap
 		},
 		{
 			name:         "complete overlap",
-			box1:         inference.BoundingBox{X1: 0, Y1: 0, X2: 100, Y2: 100},
-			box2:         inference.BoundingBox{X1: 25, Y1: 25, X2: 75, Y2: 75},
+			box1:         common.BoundingBox{X1: 0, Y1: 0, X2: 100, Y2: 100},
+			box2:         common.BoundingBox{X1: 25, Y1: 25, X2: 75, Y2: 75},
 			expectedArea: 2500, // 50x50 inner box
 		},
 		{
 			name:         "no overlap",
-			box1:         inference.BoundingBox{X1: 0, Y1: 0, X2: 50, Y2: 50},
-			box2:         inference.BoundingBox{X1: 100, Y1: 100, X2: 150, Y2: 150},
+			box1:         common.BoundingBox{X1: 0, Y1: 0, X2: 50, Y2: 50},
+			box2:         common.BoundingBox{X1: 100, Y1: 100, X2: 150, Y2: 150},
 			expectedArea: 0,
 		},
 		{
 			name:         "edge touching",
-			box1:         inference.BoundingBox{X1: 0, Y1: 0, X2: 50, Y2: 50},
-			box2:         inference.BoundingBox{X1: 50, Y1: 0, X2: 100, Y2: 50},
+			box1:         common.BoundingBox{X1: 0, Y1: 0, X2: 50, Y2: 50},
+			box2:         common.BoundingBox{X1: 50, Y1: 0, X2: 100, Y2: 50},
 			expectedArea: 0, // Touching edges don't count as intersection
 		},
 	}
@@ -199,26 +199,26 @@ func TestBoundingBoxUnion(t *testing.T) {
 	// Union calculations help us understand how much two detections overlap!
 	tests := []struct {
 		name         string
-		box1         inference.BoundingBox
-		box2         inference.BoundingBox
+		box1         common.BoundingBox
+		box2         common.BoundingBox
 		expectedArea float32
 	}{
 		{
 			name:         "partial overlap",
-			box1:         inference.BoundingBox{X1: 0, Y1: 0, X2: 100, Y2: 100},
-			box2:         inference.BoundingBox{X1: 50, Y1: 50, X2: 150, Y2: 150},
+			box1:         common.BoundingBox{X1: 0, Y1: 0, X2: 100, Y2: 100},
+			box2:         common.BoundingBox{X1: 50, Y1: 50, X2: 150, Y2: 150},
 			expectedArea: 17500, // 10000 + 10000 - 2500
 		},
 		{
 			name:         "no overlap",
-			box1:         inference.BoundingBox{X1: 0, Y1: 0, X2: 50, Y2: 50},
-			box2:         inference.BoundingBox{X1: 100, Y1: 100, X2: 150, Y2: 150},
+			box1:         common.BoundingBox{X1: 0, Y1: 0, X2: 50, Y2: 50},
+			box2:         common.BoundingBox{X1: 100, Y1: 100, X2: 150, Y2: 150},
 			expectedArea: 5000, // 2500 + 2500
 		},
 		{
 			name:         "complete containment",
-			box1:         inference.BoundingBox{X1: 0, Y1: 0, X2: 100, Y2: 100},
-			box2:         inference.BoundingBox{X1: 25, Y1: 25, X2: 75, Y2: 75},
+			box1:         common.BoundingBox{X1: 0, Y1: 0, X2: 100, Y2: 100},
+			box2:         common.BoundingBox{X1: 25, Y1: 25, X2: 75, Y2: 75},
 			expectedArea: 10000, // Larger box area only
 		},
 	}
@@ -248,36 +248,36 @@ func TestBoundingBoxIoU(t *testing.T) {
 	// IoU is the key metric for determining if two detections are the same object!
 	tests := []struct {
 		name        string
-		box1        inference.BoundingBox
-		box2        inference.BoundingBox
+		box1        common.BoundingBox
+		box2        common.BoundingBox
 		expectedIoU float32
 		tolerance   float32
 	}{
 		{
 			name:        "identical boxes",
-			box1:        inference.BoundingBox{X1: 0, Y1: 0, X2: 100, Y2: 100},
-			box2:        inference.BoundingBox{X1: 0, Y1: 0, X2: 100, Y2: 100},
+			box1:        common.BoundingBox{X1: 0, Y1: 0, X2: 100, Y2: 100},
+			box2:        common.BoundingBox{X1: 0, Y1: 0, X2: 100, Y2: 100},
 			expectedIoU: 1.0,
 			tolerance:   0.001,
 		},
 		{
 			name:        "50% overlap",
-			box1:        inference.BoundingBox{X1: 0, Y1: 0, X2: 100, Y2: 100},
-			box2:        inference.BoundingBox{X1: 50, Y1: 50, X2: 150, Y2: 150},
+			box1:        common.BoundingBox{X1: 0, Y1: 0, X2: 100, Y2: 100},
+			box2:        common.BoundingBox{X1: 50, Y1: 50, X2: 150, Y2: 150},
 			expectedIoU: 0.1428, // 2500/17500
 			tolerance:   0.001,
 		},
 		{
 			name:        "no overlap",
-			box1:        inference.BoundingBox{X1: 0, Y1: 0, X2: 50, Y2: 50},
-			box2:        inference.BoundingBox{X1: 100, Y1: 100, X2: 150, Y2: 150},
+			box1:        common.BoundingBox{X1: 0, Y1: 0, X2: 50, Y2: 50},
+			box2:        common.BoundingBox{X1: 100, Y1: 100, X2: 150, Y2: 150},
 			expectedIoU: 0.0,
 			tolerance:   0.001,
 		},
 		{
 			name:        "small box inside large box",
-			box1:        inference.BoundingBox{X1: 0, Y1: 0, X2: 100, Y2: 100},
-			box2:        inference.BoundingBox{X1: 40, Y1: 40, X2: 60, Y2: 60},
+			box1:        common.BoundingBox{X1: 0, Y1: 0, X2: 100, Y2: 100},
+			box2:        common.BoundingBox{X1: 40, Y1: 40, X2: 60, Y2: 60},
 			expectedIoU: 0.04, // 400/10000
 			tolerance:   0.001,
 		},
@@ -365,25 +365,25 @@ func TestProcessDFINEOutput(t *testing.T) {
 
 	// Check that detections are sorted by confidence
 	for i := 1; i < len(detections); i++ {
-		assert.GreaterOrEqual(t, detections[i-1].confidence, detections[i].confidence,
+		assert.GreaterOrEqual(t, detections[i-1].Intersection(&detections[i]), detections[i].Confidence,
 			"Detections should be sorted by confidence (descending)")
 	}
 
 	// Verify all detections meet confidence threshold
 	for _, det := range detections {
-		assert.GreaterOrEqual(t, det.confidence, confThreshold,
+		assert.GreaterOrEqual(t, det.Confidence, confThreshold,
 			"All detections should meet confidence threshold")
 	}
 
 	// Verify bounding box coordinates are within image bounds
 	for _, det := range detections {
-		assert.GreaterOrEqual(t, det.x1, float32(0),
+		assert.GreaterOrEqual(t, det.X1, float32(0),
 			"x1 should be within image bounds")
-		assert.GreaterOrEqual(t, det.y1, float32(0),
+		assert.GreaterOrEqual(t, det.Y1, float32(0),
 			"y1 should be within image bounds")
-		assert.LessOrEqual(t, det.x2, float32(originalWidth),
+		assert.LessOrEqual(t, det.X2, float32(originalWidth),
 			"x2 should be within image bounds")
-		assert.LessOrEqual(t, det.y2, float32(originalHeight),
+		assert.LessOrEqual(t, det.Y2, float32(originalHeight),
 			"y2 should be within image bounds")
 	}
 }
@@ -435,7 +435,7 @@ func TestExtractMultiScaleFeatures(t *testing.T) {
 	}
 
 	// Extract features
-	err := dfine.ExtractMultiScaleFeatures(img, session)
+	err := common.ExtractMultiScaleFeatures(img, session.FeatStrides, session.FeatChannels[0], session.FeatureMaps[0].GetData())
 	assert.NoError(t, err, "Feature extraction should succeed")
 
 	// Verify feature maps
@@ -762,8 +762,8 @@ func BenchmarkProcessDFINEOutput(b *testing.B) {
 // go test -bench=BenchmarkBoundingBoxIoU -benchmem
 func BenchmarkBoundingBoxIoU(b *testing.B) {
 	// IoU is called many times during NMS - it needs to be fast!
-	box1 := inference.BoundingBox{X1: 10, Y1: 20, X2: 100, Y2: 200}
-	box2 := inference.BoundingBox{X1: 50, Y1: 60, X2: 150, Y2: 250}
+	box1 := common.BoundingBox{X1: 10, Y1: 20, X2: 100, Y2: 200}
+	box2 := common.BoundingBox{X1: 50, Y1: 60, X2: 150, Y2: 250}
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
