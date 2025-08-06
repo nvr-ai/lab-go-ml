@@ -44,10 +44,11 @@ func (oe *ONNXEngine) LoadModel(modelPath string, config map[string]interface{})
 	var initErr error
 	sessionInit.Do(func() {
 		// Build ONNX config - use fixed 640x640 input shape since that's what the model expects
+		providerConfig := providers.DefaultConfig()
+		providerConfig.ModelPath = modelPath
+		
 		onnxConfig := detectors.Config{
-			Provider: providers.Config{
-				ModelPath: modelPath,
-			},
+			Provider:            providerConfig,
 			InputShape:          image.Point{X: 640, Y: 640}, // Fixed to match model expectations
 			ConfidenceThreshold: 0.5,
 			NMSThreshold:        0.4,
@@ -139,7 +140,12 @@ func (oe *ONNXEngine) Predict(ctx context.Context, img image.Image) (interface{}
 	}
 
 	// Get the target input shape from config for preprocessing
-	inputWidth, inputHeight := oe.config["input_shape"].(image.Point).X, oe.config["input_shape"].(image.Point).Y
+	var inputWidth, inputHeight int
+	if shapeSlice, ok := oe.config["input_shape"].([]int); ok && len(shapeSlice) >= 2 {
+		inputWidth, inputHeight = shapeSlice[0], shapeSlice[1]
+	} else if shapePoint, ok := oe.config["input_shape"].(image.Point); ok {
+		inputWidth, inputHeight = shapePoint.X, shapePoint.Y
+	}
 	var targetImg image.Image = img
 
 	// If a specific input shape is configured, resize to that first (this simulates preprocessing overhead)

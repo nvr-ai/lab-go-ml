@@ -82,22 +82,30 @@ func NewSession(config Config) (*inference.Session, error) {
 	// Sets the optimization level to apply when loading a graph.
 	options.SetGraphOptimizationLevel(ort.GraphOptimizationLevelEnableExtended)
 
-	if config.Provider.OptimizationConfig.ExecutionProviders[0].Provider == providers.CoreMLExecutionProvider {
-		err = options.AppendExecutionProviderCoreML(0)
-		if err != nil {
-			return nil, fmt.Errorf("error enabling CoreML: %w", err)
-		}
-	}
+	// Apply execution providers if optimization config is available
+	if config.Provider.OptimizationConfig != nil && len(config.Provider.OptimizationConfig.ExecutionProviders) > 0 {
+		for _, executionProvider := range config.Provider.OptimizationConfig.ExecutionProviders {
+			if !executionProvider.Enabled {
+				continue
+			}
 
-	if config.Provider.OptimizationConfig.ExecutionProviders[0].Provider == providers.OpenVINOExecutionProvider {
-		err = options.AppendExecutionProviderOpenVINO(map[string]string{
-			"device_id":      "0",
-			"device_type":    "CPU",
-			"precision":      "FP32",
-			"num_of_threads": "4",
-		})
-		if err != nil {
-			return nil, fmt.Errorf("error enabling OpenVINO: %w", err)
+			switch executionProvider.Provider {
+			case providers.CoreMLExecutionProvider:
+				err = options.AppendExecutionProviderCoreML(0)
+				if err != nil {
+					return nil, fmt.Errorf("error enabling CoreML: %w", err)
+				}
+			case providers.OpenVINOExecutionProvider:
+				err = options.AppendExecutionProviderOpenVINO(map[string]string{
+					"device_id":      "0",
+					"device_type":    "CPU",
+					"precision":      "FP32",
+					"num_of_threads": "4",
+				})
+				if err != nil {
+					return nil, fmt.Errorf("error enabling OpenVINO: %w", err)
+				}
+			}
 		}
 	}
 
