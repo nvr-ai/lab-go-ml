@@ -82,10 +82,29 @@ func NewSession(config Config) (*Session, error) {
 	}
 	defer options.Destroy()
 
+	// Sets the number of threads used to parallelize execution within onnxruntime graph nodes. A value of 0 uses the default number of threads.
+	options.SetIntraOpNumThreads(4)
+	// Sets the number of threads used to parallelize execution across separate onnxruntime graph nodes. A value of 0 uses the default number of threads.
+	options.SetInterOpNumThreads(2)
+	// Sets the optimization level to apply when loading a graph.
+	options.SetGraphOptimizationLevel(ort.GraphOptimizationLevelEnableExtended)
+
 	if config.UseCoreML {
 		err = options.AppendExecutionProviderCoreML(0)
 		if err != nil {
 			return nil, fmt.Errorf("error enabling CoreML: %w", err)
+		}
+	}
+
+	if config.UseOpenVINO {
+		err = options.AppendExecutionProviderOpenVINO(map[string]string{
+			"device_id":      "0",
+			"device_type":    "CPU",
+			"precision":      "FP32",
+			"num_of_threads": "4",
+		})
+		if err != nil {
+			return nil, fmt.Errorf("error enabling OpenVINO: %w", err)
 		}
 	}
 

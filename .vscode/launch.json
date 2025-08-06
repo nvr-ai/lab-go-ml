@@ -1,0 +1,16 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "test: onnx/TestNewONNXDetectorTest",
+      "type": "go",
+      "request": "launch",
+      "mode": "test",
+      "program": "${workspaceFolder}/onnx",
+      "args": ["-test.run", "TestNewONNXDetectorTest"],
+      "env": {
+        "PKG_CONFIG_PATH": "${env:PKG_CONFIG_PATH}:/opt/local/lib/opencv4/pkgconfig"
+      }
+    }
+  ]
+}

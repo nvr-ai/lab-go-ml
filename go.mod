@@ -14,6 +14,7 @@ require (
 )
 
 require (
+	github.com/8ff/prettyTimer v0.0.0-20230830184900-c96793faf613 // indirect
 	github.com/apache/arrow/go/arrow v0.0.0-20211112161151-bc219186db40 // indirect
 	github.com/awalterschulze/gographviz v2.0.3+incompatible // indirect
 	github.com/chai2010/webp v1.4.0 // indirect

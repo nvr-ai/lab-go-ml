@@ -1,0 +1,174 @@
+#!/usr/bin/env bash
+
+set -e
+
+# Colors for output
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+NC='\033[0m' # No Color
+
+info() {
+  # shellcheck disable=SC2059
+  printf "${GREEN}[INFO]${NC} %s\n" "$1"
+}
+
+success() {
+  # shellcheck disable=SC2059
+  printf "${GREEN}[SUCCESS]${NC} %s\n" "$1"
+}
+
+warn() {
+  # shellcheck disable=SC2059
+  printf "${YELLOW}[WARN]${NC} %s\n" "$1"
+}
+
+error() {
+  # shellcheck disable=SC2059
+  printf "${RED}[ERROR]${NC} %s\n" "$1"
+}
+
+# Ensure we're in the correct directory
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+cd "$SCRIPT_DIR"
+
+# Setup virtual environment and dependencies
+setup_env() {
+  info "Setting up environment..."
+
+  if [ ! -d .venv ]; then
+    info "Creating virtual environment..."
+    uv venv --python=3.11
+  fi
+
+  info "Installing/updating dependencies..."
+  # Use pip install instead of uv sync to avoid package building issues
+  uv pip install -r requirements.txt
+
+  # Clone D-FINE repository if needed
+  if [ ! -d repo ]; then
+    info "Cloning D-FINE repository..."
+    git clone https://github.com/Peterande/D-FINE --depth 1 repo
+  else
+    info "D-FINE repository already exists"
+  fi
+
+  info "Environment setup complete!"
+}
+
+# Export function
+export_model() {
+  info "Starting D-FINE ONNX export..."
+
+  # Ensure environment is set up
+  setup_env
+
+  # Change to repo directory and run export
+  cd repo
+
+  # Set PYTHONPATH to include the repo directory
+  export PYTHONPATH="$PWD:$PYTHONPATH"
+
+  info "Running export script with resolution support..."
+  # Use uv run with the venv but don't try to build the project
+  source ../.venv/bin/activate
+  python ../export.py "$@"
+
+  cd ..
+  info "Export completed!"
+}
+
+# Test function
+test_model() {
+  info "Starting D-FINE model test..."
+
+  local image_path="../../ml/corpus/images/videos/freeway-view-22-seconds-1080p.mp4/frame-0.jpg"
+  if [ ! -f "$image_path" ]; then
+    image_path="/corpus/images/videos/freeway-view-22-seconds-1080p.mp4/frame-0.jpg"
+  fi
+
+  if [ ! -f "$image_path" ]; then
+    error "Test image not found. Please provide a valid image path."
+    exit 1
+  fi
+
+  info "Running D-FINE model test with image: $image_path"
+
+  cd repo
+  export PYTHONPATH="$PWD:$PYTHONPATH"
+
+  if [ -f "model.onnx" ]; then
+    source ../.venv/bin/activate
+    python tools/inference/onnx_inf.py --onnx model.onnx --input "$image_path"
+  else
+    error "ONNX model not found. Please run export first."
+    exit 1
+  fi
+
+  cd ..
+}
+
+check() {
+  info "Checking the exported D-FINE model..."
+
+  cd repo
+  export PYTHONPATH="$PWD:$PYTHONPATH"
+
+  source ../.venv/bin/activate
+
+  python tools/inference/onnx_inf.py --onnx d_fine_model.onnx --input "$image_path"
+
+  cd ..
+}
+# Main command dispatcher
+case "$1" in
+export)
+  shift # Remove 'export' from arguments
+  export_model "$@"
+  ;;
+check)
+  shift # Remove 'check' from arguments
+  check "$@"
+  ;;
+test)
+  shift # Remove 'test' from arguments
+  test_model "$@"
+  ;;
+setup)
+  setup_env
+  ;;
+clean)
+  warn "Cleaning up environment..."
+  rm -rf .venv repo
+  info "Cleanup complete!"
+  ;;
+help | "")
+  echo "Usage: $0 {export|test|setup|clean|help}"
+  echo ""
+  echo "Commands:"
+  echo "  export   Export the D-FINE model to ONNX format with variable input dimensions"
+  echo "  test     Test the exported ONNX model with an image"
+  echo "  setup    Set up the environment and clone repository"
+  echo "  clean    Clean up virtual environment and repository"
+  echo "  help     Show this help message"
+  echo ""
+  echo "Export Options:"
+  echo "  --aspect-ratios 16:9 4:3    Supported aspect ratios (default: both)"
+  echo "  --max-width WIDTH           Maximum width constraint"
+  echo "  --max-height HEIGHT         Maximum height constraint"
+  echo "  --no-dynamic-shapes         Disable dynamic input shapes"
+  echo "  --test-inference            Test inference with different resolutions"
+  echo "  --validate-resolutions      Validate model with all resolutions"
+  echo ""
+  echo "Examples:"
+  echo "  $0 export --resume model.pth"
+  echo "  $0 export --aspect-ratios 16:9 --max-width 640 --max-height 360"
+  echo "  $0 export --resume model.pth --test-inference --validate-resolutions"
+  echo "  $0 test"
+  ;;
+*)
+  error "Unknown command: $1"
+  echo "Use '$0 help' for usage information."
+  exit 1
+  ;;
+esac

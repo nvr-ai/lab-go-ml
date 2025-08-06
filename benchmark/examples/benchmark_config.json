@@ -1,0 +1,11 @@
+{
+  "output_dir": "./benchmark_results",
+  "test_images_path": "../../ml/corpus/images/videos/freeway-view-22-seconds-1080p.mp4",
+  "model_paths": {
+    "yolo": "./data/yolov8n.onnx",
+    "dfine": "./data/d-fine.onnx"
+  },
+  "max_concurrency": 1,
+  "timeout_seconds": 3600,
+  "save_detailed_log": true
+}
