@@ -394,3 +394,20 @@ func (d *ONNXDetector) ValidateModel() error {
 
 	return nil
 }
+
+// WarmUp runs inference on the model to warm up the cache.
+//
+// Arguments:
+//   - runs: The number of times to run inference.
+//
+// Returns:
+//   - error: An error if the warmup fails.
+func (d *ONNXDetector) WarmUp(runs int) error {
+	for i := 0; i < runs; i++ {
+		_, err := d.Detect(gocv.NewMat())
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}

@@ -1,0 +1,39 @@
+#!/usr/bin/env bash
+
+path="$(pwd)/tmp/openvino"
+
+if [ ! -d "$path" ]; then
+  git clone --recursive --depth 1 --branch 2025.2.0 https://github.com/openvinotoolkit/openvino "$path"
+fi
+
+cd "$path" || {
+  echo "Failed to cd to $path"
+  exit 1
+}
+
+time cmake -S . \
+  -B build-macos \
+  -DCMAKE_BUILD_TYPE=Release \
+  -DENABLE_INTEL_CPU=ON \
+  -DENABLE_CLDNN=OFF \
+  -DENABLE_TESTS=OFF \
+  -DENABLE_OPENVINO_PYTHON=OFF \
+  -DENABLE_OPENVINO_RUNTIME=OFF
+
+time cmake \
+  --build build-macos \
+  --target install \
+  -j$(sysctl -n hw.logicalcpu)
+
+#   --use_coreml \
+# --build_wheel \
+# --wheel_name_suffix="-silicon" \
+
+if [ ! -d "../third_party" ]; then
+  mkdir -p ../third_party
+fi
+
+# cp build/MacOS/Release/libonnxruntime.1.23.0.dylib ../third_party/onnxruntime.dylib
+
+# rm -rf onnxruntime
+goroutines inside a loop can lead to unbounded concurrency if many connections fail simultaneously.

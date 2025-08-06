@@ -1,20 +1,32 @@
 #!/usr/bin/env bash
 
-git clone --recursive https://github.com/microsoft/onnxruntime --depth 1
+path="$(pwd)/tmp/onnxruntime"
 
-./build.sh --config Release \
+if [ ! -d "$path" ]; then
+  git clone --recursive --depth 1 https://github.com/microsoft/onnxruntime "$path"
+fi
+
+cd "$path" || {
+  echo "Failed to cd to $path"
+  exit 1
+}
+
+time ./build.sh --config Release \
   --parallel \
   --compile_no_warning_as_error \
   --skip_submodule_sync \
   --osx_arch "arm64" \
-  --use_openvino CPU_FP32 \
+  --use_openvino CPU \
   --skip_tests
 
 #   --use_coreml \
 # --build_wheel \
 # --wheel_name_suffix="-silicon" \
 
-mkdir -p ../third_party
+if [ ! -d "../third_party" ]; then
+  mkdir -p ../third_party
+fi
+
 cp build/MacOS/Release/libonnxruntime.1.23.0.dylib ../third_party/onnxruntime.dylib
 
 rm -rf onnxruntime
