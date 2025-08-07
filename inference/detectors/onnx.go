@@ -75,10 +75,13 @@ func NewSession(config Config) (*inference.Session, error) {
 	}
 	defer options.Destroy()
 
+	// TODO: Add to scenario driven tests and benchmarks.
 	// Sets the number of threads used to parallelize execution within onnxruntime graph nodes. A value of 0 uses the default number of threads.
 	options.SetIntraOpNumThreads(4)
+	// TODO: Add to scenario driven tests and benchmarks.
 	// Sets the number of threads used to parallelize execution across separate onnxruntime graph nodes. A value of 0 uses the default number of threads.
 	options.SetInterOpNumThreads(2)
+	// TODO: Add to scenario driven tests and benchmarks.
 	// Sets the optimization level to apply when loading a graph.
 	options.SetGraphOptimizationLevel(ort.GraphOptimizationLevelEnableExtended)
 
