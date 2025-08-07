@@ -32,7 +32,7 @@ func BenchmarkONNXInference(b *testing.B) {
 	engine.Close()
 
 	// Create benchmark suite
-	suite := benchmark.NewBenchmarkSuite(engines.NewONNXEngine(), "./benchmark_results")
+	suite := benchmark.NewSuite(engines.NewONNXEngine(), "./benchmark_results")
 
 	// Load test images
 	err = suite.LoadTestImages("../../../../ml/corpus/images/videos/freeway-view-22-seconds-1080p.mp4", images.FormatJPEG)
@@ -102,7 +102,7 @@ func BenchmarkResolutionComparison(b *testing.B) {
 	}
 	engine.Close()
 
-	suite := benchmark.NewBenchmarkSuite(engines.NewONNXEngine(), "./benchmark_results")
+	suite := benchmark.NewSuite(engines.NewONNXEngine(), "./benchmark_results")
 
 	err = suite.LoadTestImages("../../../../ml/corpus/images/videos/freeway-view-22-seconds-1080p.mp4", images.FormatJPEG)
 	if err != nil {
@@ -149,7 +149,7 @@ func BenchmarkFormatComparison(b *testing.B) {
 	}
 	engine.Close()
 
-	suite := benchmark.NewBenchmarkSuite(engines.NewONNXEngine(), "./benchmark_results")
+	suite := benchmark.NewSuite(engines.NewONNXEngine(), "./benchmark_results")
 
 	// Test with different formats (we'll load the same images but process them as different formats)
 	formats := []images.ImageFormat{images.FormatJPEG, images.FormatWebP, images.FormatPNG}

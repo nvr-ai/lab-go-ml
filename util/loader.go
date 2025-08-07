@@ -1,6 +1,7 @@
 package util
 
 import (
+	"fmt"
 	"os"
 	"path/filepath"
 	"sort"
@@ -63,4 +64,21 @@ func LoadDirectoryImageFiles(dir string) ([]ImageFile, error) {
 	})
 
 	return images, nil
+}
+
+// LoadImageFromFile loads an image file from a file path.
+//
+// Arguments:
+// - filePath: Path to the image file.
+//
+// Returns:
+// - []byte: Raw bytes of the image file.
+// - error: Error if loading fails.
+func LoadImageFromFile(filePath string) ([]byte, error) {
+	data, err := os.ReadFile(filePath)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read image file: %w", err)
+	}
+
+	return data, nil
 }

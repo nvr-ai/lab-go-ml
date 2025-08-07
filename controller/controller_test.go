@@ -23,11 +23,11 @@ func (m *MockMotionDetector) DetectMotion(frame Frame) (float64, error) {
 	if m.shouldError {
 		return 0, errors.New("mock motion detection error")
 	}
-	
+
 	if m.currentIndex >= len(m.motionScores) {
 		return 0, nil
 	}
-	
+
 	score := m.motionScores[m.currentIndex]
 	m.currentIndex++
 	return score, nil
@@ -39,20 +39,20 @@ func (m *MockMotionDetector) Reset() {
 
 // MockDensityEstimator provides controllable density estimation for testing
 type MockDensityEstimator struct {
-	densities   []int
+	densities    []int
 	currentIndex int
-	shouldError bool
+	shouldError  bool
 }
 
 func (m *MockDensityEstimator) EstimateDensity(detections []Detection) (int, error) {
 	if m.shouldError {
 		return 0, errors.New("mock density estimation error")
 	}
-	
+
 	if m.currentIndex >= len(m.densities) {
 		return 0, nil
 	}
-	
+
 	density := m.densities[m.currentIndex]
 	m.currentIndex++
 	return density, nil
@@ -68,9 +68,9 @@ func (m *MockDensityEstimator) Reset() {
 
 // MockDetector provides controllable detection results for testing
 type MockDetector struct {
-	name       string
-	resolution images.Resolution
-	detections []Detection
+	name        string
+	resolution  images.Resolution
+	detections  []Detection
 	shouldError bool
 }
 
@@ -92,53 +92,53 @@ func (m *MockDetector) Name() string {
 // TestHysteresisValidation tests the 3-frame confirmation requirement
 func TestHysteresisValidation(t *testing.T) {
 	tests := []struct {
-		name                    string
-		motionScores           []float64
-		densities              []int
-		motionThreshold        float64
-		densityThreshold       int
-		hysteresisFrames       int
-		expectedTransitions    []images.ResolutionType
+		name                     string
+		motionScores             []float64
+		densities                []int
+		motionThreshold          float64
+		densityThreshold         int
+		hysteresisFrames         int
+		expectedTransitions      []images.ResolutionAlias
 		expectedHysteresisCounts []int
 	}{
 		{
-			name:               "Basic hysteresis with 3-frame confirmation",
-			motionScores:       []float64{0.8, 0.8, 0.8, 0.1, 0.1, 0.1},
-			densities:          []int{5, 5, 5, 5, 5, 5},
-			motionThreshold:    0.5,
-			densityThreshold:   10,
-			hysteresisFrames:   3,
-			expectedTransitions: []images.ResolutionType{LowRes, LowRes, MedRes, MedRes, MedRes, LowRes},
+			name:                     "Basic hysteresis with 3-frame confirmation",
+			motionScores:             []float64{0.8, 0.8, 0.8, 0.1, 0.1, 0.1},
+			densities:                []int{5, 5, 5, 5, 5, 5},
+			motionThreshold:          0.5,
+			densityThreshold:         10,
+			hysteresisFrames:         3,
+			expectedTransitions:      []images.ResolutionAlias{LowRes, LowRes, MedRes, MedRes, MedRes, LowRes},
 			expectedHysteresisCounts: []int{1, 2, 0, 1, 2, 0},
 		},
 		{
-			name:               "High density triggers immediate high resolution",
-			motionScores:       []float64{0.1, 0.1, 0.1},
-			densities:          []int{15, 15, 15},
-			motionThreshold:    0.5,
-			densityThreshold:   10,
-			hysteresisFrames:   3,
-			expectedTransitions: []images.ResolutionType{LowRes, LowRes, HighRes},
+			name:                     "High density triggers immediate high resolution",
+			motionScores:             []float64{0.1, 0.1, 0.1},
+			densities:                []int{15, 15, 15},
+			motionThreshold:          0.5,
+			densityThreshold:         10,
+			hysteresisFrames:         3,
+			expectedTransitions:      []images.ResolutionAlias{LowRes, LowRes, HighRes},
 			expectedHysteresisCounts: []int{1, 2, 0},
 		},
 		{
-			name:               "Oscillating conditions reset hysteresis",
-			motionScores:       []float64{0.8, 0.1, 0.8, 0.1, 0.8, 0.1},
-			densities:          []int{5, 5, 5, 5, 5, 5},
-			motionThreshold:    0.5,
-			densityThreshold:   10,
-			hysteresisFrames:   3,
-			expectedTransitions: []images.ResolutionType{LowRes, LowRes, LowRes, LowRes, LowRes, LowRes},
+			name:                     "Oscillating conditions reset hysteresis",
+			motionScores:             []float64{0.8, 0.1, 0.8, 0.1, 0.8, 0.1},
+			densities:                []int{5, 5, 5, 5, 5, 5},
+			motionThreshold:          0.5,
+			densityThreshold:         10,
+			hysteresisFrames:         3,
+			expectedTransitions:      []images.ResolutionAlias{LowRes, LowRes, LowRes, LowRes, LowRes, LowRes},
 			expectedHysteresisCounts: []int{1, 0, 1, 0, 1, 0},
 		},
 		{
-			name:               "Single frame confirmation",
-			motionScores:       []float64{0.8, 0.1},
-			densities:          []int{5, 5},
-			motionThreshold:    0.5,
-			densityThreshold:   10,
-			hysteresisFrames:   1,
-			expectedTransitions: []images.ResolutionType{LowRes, LowRes},
+			name:                     "Single frame confirmation",
+			motionScores:             []float64{0.8, 0.1},
+			densities:                []int{5, 5},
+			motionThreshold:          0.5,
+			densityThreshold:         10,
+			hysteresisFrames:         1,
+			expectedTransitions:      []images.ResolutionAlias{LowRes, LowRes},
 			expectedHysteresisCounts: []int{0, 0},
 		},
 	}
@@ -148,9 +148,9 @@ func TestHysteresisValidation(t *testing.T) {
 			// Setup mock components
 			motionDetector := &MockMotionDetector{motionScores: tt.motionScores}
 			densityEstimator := &MockDensityEstimator{densities: tt.densities}
-			
+
 			// Create mock detectors
-			detectors := map[images.ResolutionType]Detector{
+			detectors := map[images.ResolutionAlias]Detector{
 				LowRes:  &MockDetector{name: "low", detections: make([]Detection, 0)},
 				MedRes:  &MockDetector{name: "med", detections: make([]Detection, 0)},
 				HighRes: &MockDetector{name: "high", detections: make([]Detection, 0)},
@@ -184,7 +184,7 @@ func TestHysteresisValidation(t *testing.T) {
 				// Check expected resolution
 				expectedRes := tt.expectedTransitions[i]
 				actualRes := controller.Current
-				assert.Equal(t, expectedRes, actualRes, 
+				assert.Equal(t, expectedRes, actualRes,
 					"Frame %d: expected resolution %v, got %v", i, expectedRes, actualRes)
 
 				// Check expected hysteresis count
@@ -211,7 +211,7 @@ func TestHysteresisStability(t *testing.T) {
 		densities: []int{3, 3, 3, 3, 3, 3, 3, 3},
 	}
 
-	detectors := map[images.ResolutionType]Detector{
+	detectors := map[images.ResolutionAlias]Detector{
 		LowRes:  &MockDetector{name: "low", detections: make([]Detection, 0)},
 		MedRes:  &MockDetector{name: "med", detections: make([]Detection, 0)},
 		HighRes: &MockDetector{name: "high", detections: make([]Detection, 0)},
@@ -259,7 +259,7 @@ func TestHysteresisEdgeCases(t *testing.T) {
 		motionDetector := &MockMotionDetector{motionScores: []float64{0.8, 0.1}}
 		densityEstimator := &MockDensityEstimator{densities: []int{5, 5}}
 
-		detectors := map[images.ResolutionType]Detector{
+		detectors := map[images.ResolutionAlias]Detector{
 			LowRes: &MockDetector{name: "low", detections: make([]Detection, 0)},
 			MedRes: &MockDetector{name: "med", detections: make([]Detection, 0)},
 		}
@@ -293,7 +293,7 @@ func TestHysteresisEdgeCases(t *testing.T) {
 		motionDetector := &MockMotionDetector{motionScores: []float64{0.1, 0.1, 0.1}}
 		densityEstimator := &MockDensityEstimator{densities: []int{5, 5, 5}}
 
-		detectors := map[images.ResolutionType]Detector{
+		detectors := map[images.ResolutionAlias]Detector{
 			LowRes: &MockDetector{name: "low", detections: make([]Detection, 0)},
 		}
 
@@ -313,7 +313,7 @@ func TestHysteresisEdgeCases(t *testing.T) {
 			frame := Frame{ID: i, Image: image.NewRGBA(image.Rect(0, 0, 640, 480))}
 			_, err := controller.Decide(frame)
 			require.NoError(t, err)
-			
+
 			// Should remain at LowRes with zero hysteresis count
 			assert.Equal(t, LowRes, controller.Current)
 			assert.Equal(t, 0, controller.HysteresisCount)
@@ -326,7 +326,7 @@ func TestErrorHandling(t *testing.T) {
 	t.Run("Motion detector error", func(t *testing.T) {
 		motionDetector := &MockMotionDetector{shouldError: true}
 		densityEstimator := &MockDensityEstimator{densities: []int{5}}
-		detectors := map[images.ResolutionType]Detector{
+		detectors := map[images.ResolutionAlias]Detector{
 			LowRes: &MockDetector{name: "low", detections: make([]Detection, 0)},
 		}
 
@@ -347,7 +347,7 @@ func TestErrorHandling(t *testing.T) {
 	t.Run("Detector error", func(t *testing.T) {
 		motionDetector := &MockMotionDetector{motionScores: []float64{0.1}}
 		densityEstimator := &MockDensityEstimator{densities: []int{5}}
-		detectors := map[images.ResolutionType]Detector{
+		detectors := map[images.ResolutionAlias]Detector{
 			LowRes: &MockDetector{name: "low", detections: make([]Detection, 0), shouldError: true},
 		}
 
@@ -368,7 +368,7 @@ func TestErrorHandling(t *testing.T) {
 	t.Run("Density estimator error", func(t *testing.T) {
 		motionDetector := &MockMotionDetector{motionScores: []float64{0.1}}
 		densityEstimator := &MockDensityEstimator{shouldError: true}
-		detectors := map[images.ResolutionType]Detector{
+		detectors := map[images.ResolutionAlias]Detector{
 			LowRes: &MockDetector{name: "low", detections: make([]Detection, 0)},
 		}
 
@@ -396,7 +396,7 @@ func TestControllerStateMaintenance(t *testing.T) {
 		densities: []int{5, 5, 5, 5},
 	}
 
-	detectors := map[images.ResolutionType]Detector{
+	detectors := map[images.ResolutionAlias]Detector{
 		LowRes: &MockDetector{name: "low", detections: make([]Detection, 0)},
 		MedRes: &MockDetector{name: "med", detections: make([]Detection, 0)},
 	}
@@ -416,7 +416,7 @@ func TestControllerStateMaintenance(t *testing.T) {
 
 	// Trace state through multiple frames
 	states := make([]struct {
-		current    images.ResolutionType
+		current    images.ResolutionAlias
 		hysteresis int
 	}, 4)
 
@@ -426,7 +426,7 @@ func TestControllerStateMaintenance(t *testing.T) {
 		require.NoError(t, err)
 
 		states[i] = struct {
-			current    images.ResolutionType
+			current    images.ResolutionAlias
 			hysteresis int
 		}{
 			current:    controller.Current,
@@ -467,7 +467,7 @@ func BenchmarkControllerDecide(b *testing.B) {
 		densityEstimator.densities[i] = 5
 	}
 
-	detectors := map[images.ResolutionType]Detector{
+	detectors := map[images.ResolutionAlias]Detector{
 		LowRes:  &MockDetector{name: "low", detections: make([]Detection, 0)},
 		MedRes:  &MockDetector{name: "med", detections: make([]Detection, 0)},
 		HighRes: &MockDetector{name: "high", detections: make([]Detection, 0)},
@@ -516,7 +516,7 @@ func TestControllerConcurrency(t *testing.T) {
 		densityEstimator.densities[i] = 5
 	}
 
-	detectors := map[images.ResolutionType]Detector{
+	detectors := map[images.ResolutionAlias]Detector{
 		LowRes:  &MockDetector{name: "low", detections: make([]Detection, 0)},
 		MedRes:  &MockDetector{name: "med", detections: make([]Detection, 0)},
 		HighRes: &MockDetector{name: "high", detections: make([]Detection, 0)},

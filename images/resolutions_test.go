@@ -15,7 +15,7 @@ func TestResolution_GetMegaPixels(t *testing.T) {
 	}{
 		{
 			name: "Full HD 1080p",
-			res:  resolutions[ResolutionTypeFHD1080p],
+			res:  resolutions[ResolutionType1080p],
 			// 1920 * 1080 = 2,073,600 -> 2.07 MP
 			expected: 2.07,
 		},
@@ -27,7 +27,7 @@ func TestResolution_GetMegaPixels(t *testing.T) {
 		},
 		{
 			name: "1MP (5:4)",
-			res:  resolutions[ResolutionType1MP54],
+			res:  resolutions[ResolutionType1MP],
 			// 1280 * 1024 = 1,310,720 -> 1.31 MP
 			expected: 1.31,
 		},
@@ -76,7 +76,7 @@ func TestResolution_GetMegaPixels(t *testing.T) {
 // TestResolution_String verifies the human-readable string output for a resolution.
 func TestResolution_String(t *testing.T) {
 	// Arrange
-	res := resolutions[ResolutionTypeFHD1080p]
+	res := resolutions[ResolutionType1080p]
 	expected := "Full HD 1080p (1920x1080, 2.07MP)"
 
 	// Act
@@ -129,9 +129,9 @@ func TestGetSupportedResolutions(t *testing.T) {
 func TestGetResolutionByType(t *testing.T) {
 	testCases := []struct {
 		name           string
-		resolutionType ResolutionType
+		resolutionType ResolutionAlias
 		expectedFound  bool
-		expectedName   ResolutionType
+		expectedName   ResolutionAlias
 	}{
 		{
 			name:           "Valid HD 720p resolution",
@@ -176,7 +176,7 @@ func TestGetHighestResolutionUnderDimensions(t *testing.T) {
 		width         int
 		height        int
 		expectedFound bool
-		expectedName  ResolutionType
+		expectedName  ResolutionAlias
 		description   string
 	}{
 		{
@@ -200,7 +200,7 @@ func TestGetHighestResolutionUnderDimensions(t *testing.T) {
 			width:         1920,
 			height:        1080,
 			expectedFound: true,
-			expectedName:  ResolutionTypeFHD1080p,
+			expectedName:  ResolutionType1080p,
 			description:   "Exact match for Full HD 1080p dimensions",
 		},
 		{

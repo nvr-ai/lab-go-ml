@@ -1,6 +1,8 @@
+// Package benchmark - Functionality for running benchmarks.
 package benchmark
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"os"
@@ -9,15 +11,27 @@ import (
 	"github.com/nvr-ai/go-ml/inference"
 )
 
+// Scenario defines a specific test configuration
+type Scenario struct {
+	Name        string               `json:"name"`
+	ModelPath   string               `json:"model_path"`
+	EngineType  inference.EngineType `json:"engine_type"`
+	Resolution  images.Resolution    `json:"resolution"`
+	ImageFormat images.ImageFormat   `json:"image_format"`
+	BatchSize   int                  `json:"batch_size"`
+	Iterations  int                  `json:"iterations"`
+	WarmupRuns  int                  `json:"warmup_runs"`
+}
+
 // ScenarioBuilder helps build test scenarios with fluent API
 type ScenarioBuilder struct {
-	scenario TestScenario
+	scenario Scenario
 }
 
 // NewScenarioBuilder creates a new scenario builder
 func NewScenarioBuilder(name string) *ScenarioBuilder {
 	return &ScenarioBuilder{
-		scenario: TestScenario{
+		scenario: Scenario{
 			Name:       name,
 			BatchSize:  1,
 			Iterations: 100,
@@ -33,18 +47,16 @@ func (sb *ScenarioBuilder) WithEngineType(engineType inference.EngineType) *Scen
 }
 
 // WithModel sets the model configuration
-func (sb *ScenarioBuilder) WithModel(modelType ModelType, modelPath string) *ScenarioBuilder {
-	sb.scenario.ModelType = modelType
+func (sb *ScenarioBuilder) WithModel(modelPath string) *ScenarioBuilder {
 	sb.scenario.ModelPath = modelPath
 	return sb
 }
 
 // WithResolution sets the image resolution
 func (sb *ScenarioBuilder) WithResolution(width, height int) *ScenarioBuilder {
-	sb.scenario.Resolution = Resolution{
+	sb.scenario.Resolution = images.Resolution{
 		Width:  width,
 		Height: height,
-		Name:   fmt.Sprintf("%dx%d", width, height),
 	}
 	return sb
 }
@@ -74,15 +86,15 @@ func (sb *ScenarioBuilder) WithBatchSize(batchSize int) *ScenarioBuilder {
 }
 
 // Build returns the configured test scenario
-func (sb *ScenarioBuilder) Build() TestScenario {
+func (sb *ScenarioBuilder) Build() Scenario {
 	return sb.scenario
 }
 
 // ScenarioSet represents a collection of related test scenarios
 type ScenarioSet struct {
-	Name        string         `json:"name"`
-	Description string         `json:"description"`
-	Scenarios   []TestScenario `json:"scenarios"`
+	Name        string     `json:"name"`
+	Description string     `json:"description"`
+	Scenarios   []Scenario `json:"scenarios"`
 }
 
 // PredefinedScenarios contains common benchmark scenario sets
@@ -90,13 +102,13 @@ type PredefinedScenarios struct{}
 
 // GetComprehensiveScenarios returns a comprehensive set of benchmark scenarios
 func (ps *PredefinedScenarios) GetComprehensiveScenarios(modelPaths map[ModelType]string) *ScenarioSet {
-	scenarios := make([]TestScenario, 0)
+	scenarios := make([]Scenario, 0)
 
 	// Test different resolutions for each model and format combination
 	for modelType, modelPath := range modelPaths {
 		for _, resolution := range images.GetAllResolutions() {
 			for _, format := range []images.ImageFormat{images.FormatJPEG, images.FormatWebP, images.FormatPNG} {
-				scenario := NewScenarioBuilder(fmt.Sprintf("%s_%s_%s", modelType, resolution.Type, format)).
+				scenario := NewScenarioBuilder(fmt.Sprintf("%s_%s_%s", modelType, resolution.Alias, format)).
 					WithModel(modelType, modelPath).
 					WithResolution(resolution.Pixels.Width, resolution.Pixels.Height).
 					WithImageFormat(format).
@@ -118,7 +130,7 @@ func (ps *PredefinedScenarios) GetComprehensiveScenarios(modelPaths map[ModelTyp
 
 // GetQuickScenarios returns a smaller set for quick testing
 func (ps *PredefinedScenarios) GetQuickScenarios(modelPaths map[ModelType]string) *ScenarioSet {
-	scenarios := make([]TestScenario, 0)
+	scenarios := make([]Scenario, 0)
 
 	// Quick test with common configurations
 	commonResolutions := []Resolution{
@@ -150,10 +162,10 @@ func (ps *PredefinedScenarios) GetQuickScenarios(modelPaths map[ModelType]string
 
 // GetResolutionComparisonScenarios tests different resolutions with the same model
 func (ps *PredefinedScenarios) GetResolutionComparisonScenarios(modelType ModelType, modelPath string) *ScenarioSet {
-	scenarios := make([]TestScenario, 0)
+	scenarios := make([]Scenario, 0)
 
 	for _, resolution := range images.GetAllResolutions() {
-		scenario := NewScenarioBuilder(fmt.Sprintf("resolution_%s_%s", modelType, resolution.Type)).
+		scenario := NewScenarioBuilder(fmt.Sprintf("resolution_%s_%s", modelType, resolution.Alias)).
 			WithModel(modelType, modelPath).
 			WithResolution(resolution.Pixels.Width, resolution.Pixels.Height).
 			WithImageFormat(images.FormatJPEG). // Use consistent format
@@ -173,7 +185,7 @@ func (ps *PredefinedScenarios) GetResolutionComparisonScenarios(modelType ModelT
 
 // GetFormatComparisonScenarios tests different image formats with the same model and resolution
 func (ps *PredefinedScenarios) GetFormatComparisonScenarios(modelType ModelType, modelPath string, resolution Resolution) *ScenarioSet {
-	scenarios := make([]TestScenario, 0)
+	scenarios := make([]Scenario, 0)
 
 	formats := []images.ImageFormat{images.FormatJPEG, images.FormatWebP, images.FormatPNG}
 	for _, format := range formats {
@@ -197,7 +209,7 @@ func (ps *PredefinedScenarios) GetFormatComparisonScenarios(modelType ModelType,
 
 // GetModelComparisonScenarios compares different models with the same configuration
 func (ps *PredefinedScenarios) GetModelComparisonScenarios(modelPaths map[ModelType]string, resolution Resolution, format images.ImageFormat) *ScenarioSet {
-	scenarios := make([]TestScenario, 0)
+	scenarios := make([]Scenario, 0)
 
 	for modelType, modelPath := range modelPaths {
 		scenario := NewScenarioBuilder(fmt.Sprintf("model_%s_%s_%s", modelType, resolution.Name, format)).
@@ -247,54 +259,26 @@ func LoadScenarioSet(filename string) (*ScenarioSet, error) {
 	return &scenarioSet, nil
 }
 
-// BenchmarkConfig represents the overall benchmark configuration
-type BenchmarkConfig struct {
-	OutputDir       string               `json:"output_dir"`
-	TestImagesPath  string               `json:"test_images_path"`
-	Engine          inference.EngineType `json:"engine"`
-	ModelPaths      map[string]string    `json:"model_paths"`
-	MaxConcurrency  int                  `json:"max_concurrency"`
-	TimeoutSeconds  int                  `json:"timeout_seconds"`
-	SaveDetailedLog bool                 `json:"save_detailed_log"`
-}
+// RunAllScenarios executes all configured benchmark scenarios
+func (bs *Suite) RunAllScenarios(ctx context.Context) error {
+	bs.mu.Lock()
+	scenarios := make([]Scenario, len(bs.scenarios))
+	copy(scenarios, bs.scenarios)
+	bs.mu.Unlock()
 
-// DefaultBenchmarkConfig returns a default benchmark configuration
-func DefaultBenchmarkConfig() *BenchmarkConfig {
-	return &BenchmarkConfig{
-		OutputDir:       "./benchmark_results",
-		TestImagesPath:  "./test_images",
-		ModelPaths:      make(map[string]string),
-		MaxConcurrency:  1,
-		TimeoutSeconds:  3600, // 1 hour
-		SaveDetailedLog: true,
-	}
-}
+	for _, scenario := range scenarios {
+		metrics, err := bs.RunScenario(ctx, scenario)
+		if err != nil {
+			fmt.Printf("Scenario %s failed: %v\n", scenario.Name, err)
+			continue
+		}
 
-// SaveConfig saves the benchmark configuration to a JSON file
-func (bc *BenchmarkConfig) SaveConfig(filename string) error {
-	data, err := json.MarshalIndent(bc, "", "  ")
-	if err != nil {
-		return fmt.Errorf("failed to marshal config: %w", err)
+		bs.mu.Lock()
+		bs.results = append(bs.results, *metrics)
+		bs.mu.Unlock()
+
+		fmt.Printf("Scenario %s completed: %.2f FPS\n", scenario.Name, metrics.FramesPerSecond)
 	}
 
-	if err := os.WriteFile(filename, data, 0o644); err != nil {
-		return fmt.Errorf("failed to write config file: %w", err)
-	}
-
-	return nil
-}
-
-// LoadBenchmarkConfig loads benchmark configuration from a JSON file
-func LoadBenchmarkConfig(filename string) (*BenchmarkConfig, error) {
-	data, err := os.ReadFile(filename)
-	if err != nil {
-		return nil, fmt.Errorf("failed to read config file: %w", err)
-	}
-
-	var config BenchmarkConfig
-	if err := json.Unmarshal(data, &config); err != nil {
-		return nil, fmt.Errorf("failed to unmarshal config: %w", err)
-	}
-
-	return &config, nil
+	return bs.SaveResults()
 }

@@ -49,7 +49,7 @@ func TestNewBenchmarkSuite(t *testing.T) {
 	engine := &MockInferenceEngine{}
 	outputDir := "./test_output"
 
-	suite := NewBenchmarkSuite(engine, outputDir)
+	suite := NewSuite(engine, outputDir)
 
 	assert.NotNil(t, suite)
 	assert.Equal(t, engine, suite.engine)
@@ -84,7 +84,7 @@ func TestScenarioBuilder(t *testing.T) {
 
 func TestAddScenario(t *testing.T) {
 	engine := &MockInferenceEngine{}
-	suite := NewBenchmarkSuite(engine, "./test_output")
+	suite := NewSuite(engine, "./test_output")
 
 	scenario := NewScenarioBuilder("test").
 		WithModel(ModelYOLO, "./model.onnx").
@@ -166,7 +166,7 @@ func TestBenchmarkConfig(t *testing.T) {
 func TestEngineInterface(t *testing.T) {
 	// Test that our mock engine works
 	engine := &MockInferenceEngine{}
-	suite := NewBenchmarkSuite(engine, "./test_output")
+	suite := NewSuite(engine, "./test_output")
 	assert.NotNil(t, suite)
 }
 

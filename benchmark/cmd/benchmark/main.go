@@ -11,7 +11,6 @@ import (
 
 	"github.com/nvr-ai/go-ml/benchmark"
 	"github.com/nvr-ai/go-ml/benchmark/engines"
-	"github.com/nvr-ai/go-ml/images"
 )
 
 func main() {
@@ -40,19 +39,18 @@ func main() {
 	}
 
 	// Create benchmark suite
-	engine := engines.NewONNXEngine()
-	suite := benchmark.NewBenchmarkSuite(engine, *outputDir)
+	suite := benchmark.NewSuite(engine, *outputDir)
 
 	// Load configuration if provided
-	var config *benchmark.BenchmarkConfig
+	var config *benchmark.Config
 	if *configFile != "" {
 		var err error
-		config, err = benchmark.LoadBenchmarkConfig(*configFile)
+		config, err = benchmark.LoadConfig(*configFile)
 		if err != nil {
 			log.Fatalf("Failed to load config: %v", err)
 		}
 	} else {
-		config = benchmark.DefaultBenchmarkConfig()
+		config = benchmark.DefaultConfig()
 		config.OutputDir = *outputDir
 		config.TestImagesPath = *testImages
 		if *modelPath != "" {
@@ -60,12 +58,6 @@ func main() {
 				"yolo": *modelPath,
 			}
 		}
-	}
-
-	// Load test images
-	err := suite.LoadTestImages(config.TestImagesPath, images.FormatJPEG)
-	if err != nil {
-		log.Fatalf("Failed to load test images: %v", err)
 	}
 
 	// Generate scenarios based on flags

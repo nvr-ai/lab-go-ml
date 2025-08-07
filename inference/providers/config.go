@@ -2,6 +2,7 @@
 package providers
 
 import (
+	"fmt"
 	"image"
 
 	ort "github.com/yalue/onnxruntime_go"
@@ -13,6 +14,9 @@ import (
 // optimization features including execution provider selection, shape profiling,
 // and performance monitoring.
 type Config struct {
+	// ProviderBackend specifies the backend to use
+	ProviderBackend ProviderBackend `json:"backend" yaml:"backend"`
+
 	// ModelPath specifies the path to the ONNX model file
 	ModelPath string `json:"model_path"`
 
@@ -47,7 +51,7 @@ type Config struct {
 // ExecutionProviderConfig contains configuration for specific execution providers
 type ExecutionProviderConfig struct {
 	// Provider specifies which execution provider to use
-	Provider Provider `json:"provider"`
+	Provider ProviderBackend `json:"provider"`
 
 	// Options contains provider-specific configuration options
 	Options map[string]string `json:"options"`
@@ -57,6 +61,16 @@ type ExecutionProviderConfig struct {
 
 	// Enabled toggles whether this provider should be used
 	Enabled bool `json:"enabled"`
+}
+
+// NewProvider creates a new provider based on the configuration
+func NewProvider(config Config) (*Provider[any], error) {
+	switch config.ProviderBackend {
+	case CPUProviderBackend:
+		return NewCPUProvider(), nil
+	default:
+		return nil, fmt.Errorf("no matching provider backend registered: %s", config.ProviderBackend)
+	}
 }
 
 // DefaultConfig returns a production-ready configuration with sensible defaults

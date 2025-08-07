@@ -46,7 +46,7 @@ func (oe *ONNXEngine) LoadModel(modelPath string, config map[string]interface{})
 		// Build ONNX config - use fixed 640x640 input shape since that's what the model expects
 		providerConfig := providers.DefaultConfig()
 		providerConfig.ModelPath = modelPath
-		
+
 		onnxConfig := detectors.Config{
 			Provider:            providerConfig,
 			InputShape:          image.Point{X: 640, Y: 640}, // Fixed to match model expectations

@@ -10,11 +10,11 @@ import (
 
 const (
 	// LowRes is the lowest resolution detector.
-	LowRes = images.ResolutionType1MP54
+	LowRes = images.ResolutionType1MP
 	// MedRes is the medium resolution detector.
 	MedRes = images.ResolutionType6MP43
 	// HighRes is the highest resolution detector.
-	HighRes = images.ResolutionTypeFHD1080p
+	HighRes = images.ResolutionType1080p
 )
 
 // Frame is a single frame of video.
@@ -54,8 +54,8 @@ type ThresholdConfig struct {
 type Controller struct {
 	MotionDetector   MotionDetector
 	DensityEstimator DensityEstimator
-	Detectors        map[images.ResolutionType]Detector
-	Current          images.ResolutionType
+	Detectors        map[images.ResolutionAlias]Detector
+	Current          images.ResolutionAlias
 	HysteresisCount  int
 	Thresholds       ThresholdConfig
 }
@@ -85,7 +85,7 @@ func (rc *Controller) Decide(frame Frame) (Detector, error) {
 		return nil, err
 	}
 
-	var next images.ResolutionType
+	var next images.ResolutionAlias
 	switch {
 	case density > rc.Thresholds.DensityThreshold:
 		next = HighRes

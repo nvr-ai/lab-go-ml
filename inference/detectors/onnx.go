@@ -21,8 +21,10 @@ import (
 
 // ONNXDetector handles ONNX model inference using gocv.ReadNet()
 type ONNXDetector struct {
-	session             *inference.Session
-	modelPath           string
+	config Config
+
+	session *inference.Session
+
 	inputShape          image.Point
 	confidenceThreshold float32
 	nmsThreshold        float32
@@ -31,6 +33,41 @@ type ONNXDetector struct {
 	mu                  sync.RWMutex
 	net                 gocv.Net
 	outputNames         []string
+}
+
+func NewONNXDetector(config Config) *ONNXDetector {
+	// Build ONNX config - use fixed 640x640 input shape since that's what the model expects
+	providerConfig := providers.DefaultConfig()
+	providerConfig.ModelPath = modelPath
+
+	onnxConfig := Config{
+		Provider:            providerConfig,
+		InputShape:          image.Point{X: 640, Y: 640}, // Fixed to match model expectations
+		ConfidenceThreshold: 0.5,
+		NMSThreshold:        0.4,
+		RelevantClasses:     []string{"person", "car", "truck", "bus", "motorcycle", "bicycle"},
+	}
+
+	// Create ONNX session
+	session, err := NewSession(onnxConfig)
+	if err != nil {
+		initErr = fmt.Errorf("failed to create ONNX session: %w", err)
+		return
+	}
+
+	globalSession = session
+
+	return &ONNXDetector{
+		config: config,
+
+		inputShape:          config.InputShape,
+		confidenceThreshold: config.ConfidenceThreshold,
+		nmsThreshold:        config.NMSThreshold,
+		initialized:         false,
+		mu:                  sync.RWMutex{},
+		net:                 gocv.ReadNetFromONNX(config.ModelPath),
+		outputNames:         config.OutputNames,
+	}
 }
 
 // NewSession creates a new ONNX detector.

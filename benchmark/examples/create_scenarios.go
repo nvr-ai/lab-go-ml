@@ -64,7 +64,7 @@ func main() {
 	customSet := &benchmark.ScenarioSet{
 		Name:        "Custom High Resolution WebP Test",
 		Description: "Tests high resolution WebP images with YOLO model",
-		Scenarios:   []benchmark.TestScenario{customScenario},
+		Scenarios:   []benchmark.Scenario{customScenario},
 	}
 
 	err = benchmark.SaveScenarioSet(customSet, "custom_scenarios.json")
