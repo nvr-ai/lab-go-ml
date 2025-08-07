@@ -19,7 +19,27 @@ const (
 	AspectRatio179 AspectRatio = "17:9" // Common in some high-end sensors
 )
 
-// ResolutionType represents a common name or standard for a CCTV resolution.
+// ResolutionGroup represents the logical families based on resolution scale and use-case.
+type ResolutionGroup string
+
+// Defines the unique type for each supported camera resolution.
+// This provides a clear, non-ambiguous identifier for each resolution standard.
+const (
+	// ResolutionGroupLegacy resolutions are older or niche formats	"nHD", "FWVGA", "qHD 540p"
+	ResolutionGroupLegacy ResolutionGroup = "Legacy"
+	// ResolutionGroupHD represents standard HD resolutions including "HD 720p", "HD+", "WXGA".
+	ResolutionGroupHD ResolutionGroup = "HD"
+	// ResolutionGroupFHD represents Full HD tier resolutions including "Full HD 1080p".
+	ResolutionGroupFHD ResolutionGroup = "FHD"
+	// ResolutionGroupQHD represents Quad HD tier resolutions including "QHD 1440p", "QHD+".
+	ResolutionGroupQHD ResolutionGroup = "QHD"
+	// ResolutionGroupUHD represents Ultra HD and beyond resolutions including "4K UHD", "8K UHD", "16K UHD".
+	ResolutionGroupUHD ResolutionGroup = "UHD"
+	// ResolutionGroupMP represents megapixel-based formats including "1MP (5:4)", "12MP (4:3)".
+	ResolutionGroupMP ResolutionGroup = "MP"
+)
+
+// ResolutionType represents a common name or standard for camera resolutions.
 type ResolutionType string
 
 // Defines the unique type for each supported camera resolution.
@@ -48,8 +68,8 @@ const (
 	ResolutionType64KUHD   ResolutionType = "64K UHD"
 )
 
-// ResolutionPixels describes the exact dimensions of a resolution.
-type ResolutionPixels struct {
+// Pixels describes the exact dimensions of a resolution.
+type Pixels struct {
 	Width  int `json:"width"`
 	Height int `json:"height"`
 }
@@ -57,10 +77,12 @@ type ResolutionPixels struct {
 // Resolution describes the complete set of attributes for a CCTV resolution standard.
 // It includes metadata for easy identification and filtering.
 type Resolution struct {
-	Name         ResolutionType   `json:"name"`
-	AspectRatio  AspectRatio      `json:"aspectRatio"`
-	Pixels       ResolutionPixels `json:"pixels"`
-	Experimental bool             `json:"experimental"` // Flags resolutions not yet in common commercial use.
+	Type        ResolutionType  `json:"type" yaml:"type"`
+	Group       ResolutionGroup `json:"group" yaml:"group"`
+	Width       int             `json:"width" yaml:"width"`
+	Height      int             `json:"height" yaml:"height"`
+	Pixels      Pixels          `json:"pixels" yaml:"pixels"`
+	AspectRatio AspectRatio     `json:"aspectRatio" yaml:"aspectRatio"`
 }
 
 // GetMegaPixels calculates the megapixel value based on the resolution's pixel dimensions.
@@ -80,119 +102,179 @@ func (r Resolution) GetMegaPixels() float64 {
 // String returns a human-readable summary of the resolution.
 // O(1) complexity.
 func (r Resolution) String() string {
-	return fmt.Sprintf("%s (%dx%d, %.2fMP)", r.Name, r.Pixels.Width, r.Pixels.Height, r.GetMegaPixels())
+	return fmt.Sprintf("%s (%dx%d, %.2fMP)", r.Type, r.Pixels.Width, r.Pixels.Height, r.GetMegaPixels())
 }
 
-// resolutions is a private map that stores all defined resolution standards,
+// resolutions is a private variable that holds the catalog of all defined resolution standards,
 // keyed by their ResolutionType for efficient lookups.
 var resolutions = map[ResolutionType]Resolution{
 	ResolutionTypeNHD: {
-		Name:        ResolutionTypeNHD,
+		Type:        ResolutionTypeNHD,
+		Group:       ResolutionGroupLegacy,
+		Width:       640,
+		Height:      360,
+		Pixels:      Pixels{Width: 640, Height: 360},
 		AspectRatio: AspectRatio169,
-		Pixels:      ResolutionPixels{Width: 640, Height: 360},
 	},
 	ResolutionTypeFWVGA: {
-		Name:        ResolutionTypeFWVGA,
+		Type:        ResolutionTypeFWVGA,
+		Group:       ResolutionGroupLegacy,
+		Width:       854,
+		Height:      480,
+		Pixels:      Pixels{Width: 854, Height: 480},
 		AspectRatio: AspectRatio169,
-		Pixels:      ResolutionPixels{Width: 854, Height: 480},
 	},
 	ResolutionTypeQHD540: {
-		Name:        ResolutionTypeQHD540,
+		Type:        ResolutionTypeQHD540,
+		Group:       ResolutionGroupLegacy,
+		Width:       960,
+		Height:      540,
+		Pixels:      Pixels{Width: 960, Height: 540},
 		AspectRatio: AspectRatio169,
-		Pixels:      ResolutionPixels{Width: 960, Height: 540},
 	},
 	ResolutionTypeHD720p: {
-		Name:        ResolutionTypeHD720p,
+		Type:        ResolutionTypeHD720p,
+		Group:       ResolutionGroupHD,
+		Width:       1280,
+		Height:      720,
+		Pixels:      Pixels{Width: 1280, Height: 720},
 		AspectRatio: AspectRatio169,
-		Pixels:      ResolutionPixels{Width: 1280, Height: 720},
-	},
-	ResolutionTypeWXGA: {
-		Name:        ResolutionTypeWXGA,
-		AspectRatio: AspectRatio169,
-		Pixels:      ResolutionPixels{Width: 1366, Height: 768},
-	},
-	ResolutionTypeHDPlus: {
-		Name:        ResolutionTypeHDPlus,
-		AspectRatio: AspectRatio169,
-		Pixels:      ResolutionPixels{Width: 1600, Height: 900},
 	},
 	ResolutionType1MP54: {
-		Name:        ResolutionType1MP54,
+		Type:        ResolutionType1MP54,
+		Group:       ResolutionGroupMP,
+		Width:       1280,
+		Height:      1024,
+		Pixels:      Pixels{Width: 1280, Height: 1024},
 		AspectRatio: AspectRatio54,
-		Pixels:      ResolutionPixels{Width: 1280, Height: 1024},
 	},
-	ResolutionTypeFHD1080p: {
-		Name:        ResolutionTypeFHD1080p,
+	ResolutionTypeWXGA: {
+		Type:        ResolutionTypeWXGA,
+		Group:       ResolutionGroupHD,
+		Width:       1366,
+		Height:      768,
+		Pixels:      Pixels{Width: 1366, Height: 768},
 		AspectRatio: AspectRatio169,
-		Pixels:      ResolutionPixels{Width: 1920, Height: 1080},
+	},
+	ResolutionTypeHDPlus: {
+		Type:        ResolutionTypeHDPlus,
+		Group:       ResolutionGroupHD,
+		Width:       1600,
+		Height:      900,
+		Pixels:      Pixels{Width: 1600, Height: 900},
+		AspectRatio: AspectRatio169,
 	},
 	ResolutionType2MP43: {
-		Name:        ResolutionType2MP43,
+		Type:        ResolutionType2MP43,
+		Group:       ResolutionGroupMP,
+		Width:       1600,
+		Height:      1200,
+		Pixels:      Pixels{Width: 1600, Height: 1200},
 		AspectRatio: AspectRatio43,
-		Pixels:      ResolutionPixels{Width: 1600, Height: 1200},
 	},
-	ResolutionTypeQHD1440p: {
-		Name:        ResolutionTypeQHD1440p,
+	ResolutionTypeFHD1080p: {
+		Type:        ResolutionTypeFHD1080p,
+		Group:       ResolutionGroupFHD,
+		Width:       1920,
+		Height:      1080,
+		Pixels:      Pixels{Width: 1920, Height: 1080},
 		AspectRatio: AspectRatio169,
-		Pixels:      ResolutionPixels{Width: 2560, Height: 1440},
 	},
 	ResolutionType3MP43: {
-		Name:        ResolutionType3MP43,
+		Type:        ResolutionType3MP43,
+		Group:       ResolutionGroupMP,
+		Width:       2048,
+		Height:      1536,
+		Pixels:      Pixels{Width: 2048, Height: 1536},
 		AspectRatio: AspectRatio43,
-		Pixels:      ResolutionPixels{Width: 2048, Height: 1536},
+	},
+	ResolutionTypeQHD1440p: {
+		Type:        ResolutionTypeQHD1440p,
+		Group:       ResolutionGroupQHD,
+		Width:       2560,
+		Height:      1440,
+		Pixels:      Pixels{Width: 2560, Height: 1440},
+		AspectRatio: AspectRatio169,
 	},
 	ResolutionType4MP169: {
-		Name:        ResolutionType4MP169,
+		Type:        ResolutionType4MP169,
+		Group:       ResolutionGroupMP,
+		Width:       2688,
+		Height:      1520,
+		Pixels:      Pixels{Width: 2688, Height: 1520},
 		AspectRatio: AspectRatio169,
-		Pixels:      ResolutionPixels{Width: 2688, Height: 1520},
 	},
 	ResolutionType6MP43: {
-		Name:        "6MP (3:2)", // Corrected name
-		AspectRatio: "3:2",       // Corrected aspect ratio
-		Pixels:      ResolutionPixels{Width: 3072, Height: 2048},
+		Type:        ResolutionType6MP43,
+		Group:       ResolutionGroupMP,
+		Width:       3072,
+		Height:      2048,
+		Pixels:      Pixels{Width: 3072, Height: 2048},
+		AspectRatio: "3:2",
 	},
 	ResolutionTypeQHDPlus: {
-		Name:        ResolutionTypeQHDPlus,
+		Type:        ResolutionTypeQHDPlus,
+		Group:       ResolutionGroupQHD,
+		Width:       3200,
+		Height:      1800,
+		Pixels:      Pixels{Width: 3200, Height: 1800},
 		AspectRatio: AspectRatio179,
-		Pixels:      ResolutionPixels{Width: 3200, Height: 1800},
 	},
 	ResolutionType4KUHD: {
-		Name:        ResolutionType4KUHD,
+		Type:        ResolutionType4KUHD,
+		Group:       ResolutionGroupUHD,
+		Width:       3840,
+		Height:      2160,
+		Pixels:      Pixels{Width: 3840, Height: 2160},
 		AspectRatio: AspectRatio169,
-		Pixels:      ResolutionPixels{Width: 3840, Height: 2160},
 	},
 	ResolutionType12MP: {
-		Name:        ResolutionType12MP,
+		Type:        ResolutionType12MP,
+		Group:       ResolutionGroupMP,
+		Width:       4000,
+		Height:      3000,
+		Pixels:      Pixels{Width: 4000, Height: 3000},
 		AspectRatio: AspectRatio43,
-		Pixels:      ResolutionPixels{Width: 4000, Height: 3000},
 	},
 	ResolutionType5K: {
-		Name:        ResolutionType5K,
+		Type:        ResolutionType5K,
+		Group:       ResolutionGroupUHD,
+		Width:       5120,
+		Height:      2880,
+		Pixels:      Pixels{Width: 5120, Height: 2880},
 		AspectRatio: AspectRatio169,
-		Pixels:      ResolutionPixels{Width: 5120, Height: 2880},
 	},
 	ResolutionType8KUHD: {
-		Name:        ResolutionType8KUHD,
+		Type:        ResolutionType8KUHD,
+		Group:       ResolutionGroupUHD,
+		Width:       7680,
+		Height:      4320,
+		Pixels:      Pixels{Width: 7680, Height: 4320},
 		AspectRatio: AspectRatio169,
-		Pixels:      ResolutionPixels{Width: 7680, Height: 4320},
 	},
 	ResolutionType16KUHD: {
-		Name:         ResolutionType16KUHD,
-		AspectRatio:  AspectRatio169,
-		Pixels:       ResolutionPixels{Width: 15360, Height: 8640},
-		Experimental: true,
+		Type:        ResolutionType16KUHD,
+		Group:       ResolutionGroupUHD,
+		Width:       15360,
+		Height:      8640,
+		Pixels:      Pixels{Width: 15360, Height: 8640},
+		AspectRatio: AspectRatio169,
 	},
 	ResolutionType32KUHD: {
-		Name:         ResolutionType32KUHD,
-		AspectRatio:  AspectRatio169,
-		Pixels:       ResolutionPixels{Width: 30720, Height: 17280},
-		Experimental: true,
+		Type:        ResolutionType32KUHD,
+		Group:       ResolutionGroupUHD,
+		Width:       30720,
+		Height:      17280,
+		Pixels:      Pixels{Width: 30720, Height: 17280},
+		AspectRatio: AspectRatio169,
 	},
 	ResolutionType64KUHD: {
-		Name:         ResolutionType64KUHD,
-		AspectRatio:  AspectRatio169,
-		Pixels:       ResolutionPixels{Width: 61440, Height: 34560},
-		Experimental: true,
+		Type:        ResolutionType64KUHD,
+		Group:       ResolutionGroupUHD,
+		Width:       61440,
+		Height:      34560,
+		Pixels:      Pixels{Width: 61440, Height: 34560},
+		AspectRatio: AspectRatio169,
 	},
 }
 
@@ -214,9 +296,7 @@ func GetAllResolutions() []Resolution {
 func GetSupportedResolutions() []Resolution {
 	supported := make([]Resolution, 0, len(resolutions))
 	for _, res := range resolutions {
-		if !res.Experimental {
-			supported = append(supported, res)
-		}
+		supported = append(supported, res)
 	}
 	return supported
 }

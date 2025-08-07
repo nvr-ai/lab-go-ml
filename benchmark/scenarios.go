@@ -96,7 +96,7 @@ func (ps *PredefinedScenarios) GetComprehensiveScenarios(modelPaths map[ModelTyp
 	for modelType, modelPath := range modelPaths {
 		for _, resolution := range images.GetAllResolutions() {
 			for _, format := range []images.ImageFormat{images.FormatJPEG, images.FormatWebP, images.FormatPNG} {
-				scenario := NewScenarioBuilder(fmt.Sprintf("%s_%s_%s", modelType, resolution.Name, format)).
+				scenario := NewScenarioBuilder(fmt.Sprintf("%s_%s_%s", modelType, resolution.Type, format)).
 					WithModel(modelType, modelPath).
 					WithResolution(resolution.Pixels.Width, resolution.Pixels.Height).
 					WithImageFormat(format).
@@ -153,7 +153,7 @@ func (ps *PredefinedScenarios) GetResolutionComparisonScenarios(modelType ModelT
 	scenarios := make([]TestScenario, 0)
 
 	for _, resolution := range images.GetAllResolutions() {
-		scenario := NewScenarioBuilder(fmt.Sprintf("resolution_%s_%s", modelType, resolution.Name)).
+		scenario := NewScenarioBuilder(fmt.Sprintf("resolution_%s_%s", modelType, resolution.Type)).
 			WithModel(modelType, modelPath).
 			WithResolution(resolution.Pixels.Width, resolution.Pixels.Height).
 			WithImageFormat(images.FormatJPEG). // Use consistent format

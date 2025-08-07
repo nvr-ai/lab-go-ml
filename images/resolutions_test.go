@@ -40,21 +40,21 @@ func TestResolution_GetMegaPixels(t *testing.T) {
 		{
 			name: "Zero Width",
 			res: Resolution{
-				Pixels: ResolutionPixels{Width: 0, Height: 1080},
+				Pixels: Pixels{Width: 0, Height: 1080},
 			},
 			expected: 0.0,
 		},
 		{
 			name: "Zero Height",
 			res: Resolution{
-				Pixels: ResolutionPixels{Width: 1920, Height: 0},
+				Pixels: Pixels{Width: 1920, Height: 0},
 			},
 			expected: 0.0,
 		},
 		{
 			name: "Negative Width",
 			res: Resolution{
-				Pixels: ResolutionPixels{Width: -1920, Height: 1080},
+				Pixels: Pixels{Width: -1920, Height: 1080},
 			},
 			expected: 0.0,
 		},
