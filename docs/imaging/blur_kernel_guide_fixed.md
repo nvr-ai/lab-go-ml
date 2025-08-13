@@ -19,14 +19,18 @@ config:
   look: neo
   fontFamily: Inter
   themeVariables:
-    lineColor: #E621DF
+    primaryTextColor: "#C4C7D7"
+    lineColor: "#EC0BEC"
+    edgeLabelBackground: "#434F6308"
+    clusterBkg: "#00000008"
 ---
 flowchart TD
   input["Raw Camera Stream Feeds"]:::start@{ shape: procs }
   input input-feeder-connector@==> image-kernel-artifacts
   input-feeder-connector@{ animation: fast }
 
-  subgraph processing["<br>"]; style processing fill: transparent,stroke: none
+  subgraph processing["<br>"]; style processing fill: transparent, stroke:#00C853, stroke-width: 3px
+
     image-kernel-artifacts["Sensor Noise & Artifacts"]@{ shape: braces }
     image-kernel-artifacts:::braces
 
@@ -34,6 +38,8 @@ flowchart TD
     image-kernel-clean["Clean Image"]:::process@{ shape: h-cyl}
   end
   
+
+
   subgraph inference["<br>"]; style inference fill: transparent,stroke: none
     object-detection-model["Object Detection Model"]
   end 
@@ -57,7 +63,7 @@ flowchart TD
 
   n1@{ icon: "azure:integration-environments", form: "rounded", pos: "b"}
   n1["Sample Labelasd fasdf"]
-  style n1 stroke:#FFD600, stroke-width:px
+  style n1 stroke:#FFD600, stroke-width:0px
 
 
 
