@@ -14,62 +14,32 @@
 
 ## Introduction
 
-Welcome to the blur operations module! If you're new to computer vision or image processing, you might wonder: "Why would we intentionally make images blurry?"
+### Why would we intentionally make images blurry?
 
-**The short answer:** Blur is a preprocessing tool that improves the accuracy of object detection models by reducing noise while preserving important features.
+The _short_ answer:
 
-**The engineering answer:** Blur operations are mathematically precise convolution kernels that smooth pixel intensity variations, making object detection models more robust to sensor noise, compression artifacts, and lighting variations.
+> Blur is a preprocessing method that improves the **accuracy** of object detection models by _reducing_ noise while **preserving** important features.
 
-### Why This Matters
+The _engineering_ answer:
 
-In a video surveillance system processing 1000+ camera feeds:
+> Blur operations are mathematically precise convolution kernels that smooth pixel intensity variations, making object detection models more robust to sensor noise, compression artifacts, and lighting variations.
 
-- **Noise amplification**: Each camera sensor introduces electronic noise
-- **Compression artifacts**: Video streams contain JPEG/H.264 compression noise
-- **Environmental factors**: Dust, rain, lighting changes create visual noise
-- **Model sensitivity**: Modern AI models can be overly sensitive to pixel-level variations
+### Why does this matter?
 
-Blur preprocessing solves these problems by **preserving object boundaries while smoothing noise**.
+In a real-time surveillance system processing like ours:
 
----
+With real-time surveillance processing the amount of noise that can be induced can be substantial. So much so that it can impact the accuracy of the object detection models and have immediate operational impact downstream.
 
-## The Engineering Problem
+We first address this by applying a crude algorithm to each frame called a "box blur" operation to each video frame before they continue throughout the rest of the analytical pipeline(s).
 
-### Problem Statement
+This is done to address the following problems:
 
-You have a video frame containing:
+- **Noise amplification**: Each camera sensor introduces (electronic) noise.
+- **Compression artifacts**: Video streams contain noise from compression (H.264/H.265).
+- **Environmental factors**: Lighting, wind, dust, etc. contribute to changes in the image that add additional (visual) noise.
+- **Model sensitivity**: Off-the-shelf models are usually overly sensitive to pixel-level variations.
 
-- **Signal**: Cars, people, objects we want to detect
-- **Noise**: Random pixel variations, compression artifacts, dust specks
-
-**Challenge**: Remove noise without destroying object edges that detection models need.
-
-### Mathematical Foundation
-
-Box blur implements a **discrete convolution** operation:
-
-```
-Output[x,y] = (1/k²) × Σ Σ Input[x+i, y+j]
-```
-
-Where:
-
-- `k = (2×radius + 1)` is the kernel size
-- The sum covers all pixels in the kernel window
-- Division by k² normalizes to prevent brightness changes
-
-### Why Box Blur vs Gaussian Blur?
-
-| Box Blur                             | Gaussian Blur                    |
-| ------------------------------------ | -------------------------------- |
-| **Uniform weight distribution**      | Weighted by distance from center |
-| **O(1) per pixel** with optimization | O(k²) per pixel                  |
-| **Simpler implementation**           | More complex mathematics         |
-| **Sufficient for preprocessing**     | Better for artistic effects      |
-
-For real-time video processing, box blur's constant-time performance is crucial.
-
----
+"Blur preprocessing" helps solve these problems by _smoothing_ pixel variations while _preserving_ object boundaries.
 
 ## Architecture Overview
 
@@ -98,13 +68,11 @@ const (
 
 ### Design Philosophy
 
-1. **Performance First**: Every operation optimized for real-time video processing
-2. **Memory Conscious**: Pools prevent garbage collection pressure
-3. **Mathematically Correct**: Proper convolution implementation
-4. **Edge Case Handling**: Robust boundary conditions
-5. **Testing Driven**: Comprehensive validation of all scenarios
-
----
+1. **Performance First**: Every operation must be optimized for low-latency.
+2. **Memory Conscious**: Use pooling to prevent garbage collection pressure.
+3. **Mathematical Precision**: Convolution must be implemented **precisely**.
+4. **Edge Case Handling**: Robust boundary conditions must be evaluated and adjusted for.
+5. **Data Driven**: Comprehensive test and benchmark coverage for relative and edge cases.
 
 ## Implementation Deep Dive
 
@@ -114,31 +82,52 @@ const (
 func BoxBlur(src image.Image, opts Options) image.Image
 ```
 
-**Step-by-step execution:**
+```mermaid
+%%{init: {
+  "theme": "dark",
+  "fontFamily": "Inter",
+  "themeVariables": {
+    "primaryColor": "#E621DF",
+    "lineColor": "#E621DF",
+    "background": "#111C2E",
+    "clusterBkg": "#FFD600"
+  }
+}}%%
+flowchart TD
+    start([Start Convolution])
+    pick["Pick output pixel (x, y)"]
+    window["Compute sampling window (2 × radius + 1)² around (x, y)"]
+    sum["Sum all pixel values in the window"]
+    norm[Divide sum by window area for normalization]
+    edge[Pixel fully inside image?]
+    handleEdge["Apply EdgeMode handling (e.g. clamp, mirror, wrap)"]
+    assign["Write normalized value to output pixel"]
+    next([More pixels to process?])
+    ends[Convolution Complete]
 
-1. **Input Validation**
+    start --> pick
+    pick --> window
+    window --> sum
+    sum --> norm
+    norm --> edge
+    edge -->|Yes| assign
+    edge -->|No| handleEdge --> assign
+    assign --> next
+    next -->|Yes| pick
+    next -->|No| ends
 
-   ```go
-   if opts.Radius <= 0 {
-       return copyImage(src)  // No-op for radius 0
-   }
-   ```
+```
 
-2. **Memory Allocation**
+Step-by-step execution:
 
-   ```go
-   bounds := src.Bounds()
-   dst := image.NewRGBA(bounds)
-   ```
-
-3. **Convolution Kernel Application**
+1. **Convolution Kernel Application**
 
    - For each output pixel (x,y)
    - Sum all pixels in (2×radius+1)² window around (x,y)
    - Divide by window area for normalization
    - Handle edge cases based on EdgeMode
 
-4. **Edge Handling Example (EdgeClamp)**
+2. **Edge Handling Example (EdgeClamp)**
    ```go
    // If kernel extends beyond image boundary
    if sampleX < 0 { sampleX = 0 }           // Clamp to left edge
@@ -452,4 +441,4 @@ flowchart LR
 
 ---
 
-_This document represents the collective knowledge of our computer vision engineering team. Questions? Reach out on Slack #cv-engineering*
+\_This document represents the collective knowledge of our computer vision engineering team. Questions? Reach out on Slack #cv-engineering\*

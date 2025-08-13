@@ -11,6 +11,7 @@ Imagine you're trying to spot a friend in a crowded, dimly-lit concert venue. Th
 
 Computer vision models face the same challenge, but they can't squint. They process every pixel with mathematical precision, treating sensor noise, compression artifacts, and aliasing as if they were meaningful visual information. This is where a blur kernel becomes your model's "intelligent squint" – a preprocessing step that removes visual noise while preserving the structural information needed for accurate object detection.
 
+### Image Processing & Detection Pipeline
 ```mermaid
 ---
 config:
@@ -19,7 +20,6 @@ config:
   fontFamily: Inter
   themeVariables:
     lineColor: #E621DF
-title: Image Processing & Detection Pipeline
 ---
 flowchart TD
   input["Raw Camera Stream Feeds"]:::start@{ shape: procs }
