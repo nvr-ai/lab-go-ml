@@ -5,8 +5,6 @@ package inference
 type EngineType string
 
 const (
-	// EngineONNX is the ONNX engine that uses the onnxruntime library
-	EngineONNX EngineType = "onnx"
 	// EngineOpenVINO is the OpenVINO engine that uses the OpenVINO library
 	EngineOpenVINO EngineType = "openvino"
 	// EngineCoreML is the CoreML engine that uses the CoreML library
@@ -14,4 +12,4 @@ const (
 )
 
 // Engines is a list of all supported engines
-var Engines = []EngineType{EngineONNX, EngineOpenVINO, EngineCoreML}
+var Engines = []EngineType{EngineOpenVINO, EngineCoreML}

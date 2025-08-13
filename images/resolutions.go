@@ -32,7 +32,8 @@ const (
 	ResolutionGroupFHD ResolutionGroup = "FHD"
 	// ResolutionGroupQHD represents Quad HD tier resolutions including "QHD 1440p", "QHD+".
 	ResolutionGroupQHD ResolutionGroup = "QHD"
-	// ResolutionGroupUHD represents Ultra HD and beyond resolutions including "4K UHD", "8K UHD", "16K UHD".
+	// ResolutionGroupUHD represents Ultra HD and beyond resolutions including "4K UHD", "8K UHD",
+	// "16K UHD".
 	ResolutionGroupUHD ResolutionGroup = "UHD"
 	// ResolutionGroupMP represents megapixel-based formats including "1MP (5:4)", "12MP (4:3)".
 	ResolutionGroupMP ResolutionGroup = "MP"
@@ -76,11 +77,11 @@ type Pixels struct {
 // Resolution describes the complete set of attributes for a CCTV resolution standard.
 // It includes metadata for easy identification and filtering.
 type Resolution struct {
-	Alias       ResolutionAlias `json:"type" yaml:"type"`
-	Group       ResolutionGroup `json:"group" yaml:"group"`
-	Width       int             `json:"width" yaml:"width"`
-	Height      int             `json:"height" yaml:"height"`
-	Pixels      Pixels          `json:"pixels" yaml:"pixels"`
+	Alias       ResolutionAlias `json:"type"        yaml:"type"`
+	Group       ResolutionGroup `json:"group"       yaml:"group"`
+	Width       int             `json:"width"       yaml:"width"`
+	Height      int             `json:"height"      yaml:"height"`
+	Pixels      Pixels          `json:"pixels"      yaml:"pixels"`
 	AspectRatio AspectRatio     `json:"aspectRatio" yaml:"aspectRatio"`
 }
 
@@ -90,9 +91,9 @@ func (r Resolution) String() string {
 	return fmt.Sprintf("%s (%dx%d)", r.Alias, r.Pixels.Width, r.Pixels.Height)
 }
 
-// resolutions is a private variable that holds the catalog of all defined resolution standards,
+// Resolutions is a private variable that holds the catalog of all defined resolution standards,
 // keyed by their ResolutionType for efficient lookups.
-var resolutions = map[ResolutionAlias]Resolution{
+var Resolutions = map[ResolutionAlias]Resolution{
 	ResolutionAliasNHD: {
 		Alias:       ResolutionAliasNHD,
 		Group:       ResolutionGroupLegacy,
@@ -263,38 +264,16 @@ var resolutions = map[ResolutionAlias]Resolution{
 	},
 }
 
-// GetAllResolutions returns a slice of all defined resolution standards.
-// The order is not guaranteed.
-// O(N) complexity, where N is the number of resolutions.
-func GetAllResolutions() []Resolution {
-	all := make([]Resolution, 0, len(resolutions))
-	for _, res := range resolutions {
-		all = append(all, res)
-	}
-	return all
-}
-
-// GetSupportedResolutions returns a slice of all non-experimental resolutions.
-// This is useful for populating UI elements with commercially available options.
-// The order is not guaranteed.
-// O(N) complexity, where N is the number of resolutions.
-func GetSupportedResolutions() []Resolution {
-	supported := make([]Resolution, 0, len(resolutions))
-	for _, res := range resolutions {
-		supported = append(supported, res)
-	}
-	return supported
-}
-
 // GetResolutionByType retrieves a specific resolution by its type.
 // It returns the Resolution and true if found, otherwise an empty Resolution and false.
 // O(1) complexity due to map lookup.
 func GetResolutionByType(t ResolutionAlias) (Resolution, bool) {
-	res, ok := resolutions[t]
+	res, ok := Resolutions[t]
 	return res, ok
 }
 
-// GetHighestResolutionUnderDimensions retrieves the highest resolution that is under the given width and height.
+// GetHighestResolutionUnderDimensions retrieves the highest resolution that is under the given
+// width and height.
 // It returns the Resolution and true if found, otherwise an empty Resolution and false.
 // O(N) complexity, where N is the number of resolutions.
 //
@@ -309,7 +288,7 @@ func GetHighestResolutionUnderDimensions(width, height int) (Resolution, bool) {
 	var highest Resolution
 	var found bool
 
-	for _, res := range resolutions {
+	for _, res := range Resolutions {
 		if res.Pixels.Width <= width && res.Pixels.Height <= height {
 			if !found || res.Pixels.Width*res.Pixels.Height > highest.Pixels.Width*highest.Pixels.Height {
 				highest = res

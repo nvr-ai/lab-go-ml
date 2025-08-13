@@ -9,6 +9,7 @@ import (
 	"sync"
 
 	"github.com/nvr-ai/go-ml/images"
+	"github.com/nvr-ai/go-ml/models/postprocess"
 )
 
 // DensityEstimator is an interface for estimating object density in frames.
@@ -16,8 +17,8 @@ import (
 // Implementations should analyze the spatial distribution and characteristics
 // of detected objects to determine scene complexity and density.
 type DensityEstimator interface {
-	EstimateDensity(detections []Result) (int, error)
-	GetDensityMetrics(detections []Result) (*DensityMetrics, error)
+	EstimateDensity(detections []postprocess.Result) (int, error)
+	GetDensityMetrics(detections []postprocess.Result) (*DensityMetrics, error)
 }
 
 // DensityMetrics provides detailed analysis of object density and distribution.
@@ -149,7 +150,7 @@ func NewDensityEstimator(config DensityEstimationConfig) *DefaultDensityEstimato
 // estimator := NewAdvancedDensityEstimator(DefaultDensityEstimationConfig())
 // density, err := estimator.EstimateDensity(detections)
 // fmt.Printf("Scene density: %d\n", density)
-func (ade *DefaultDensityEstimator) EstimateDensity(detections []Result) (int, error) {
+func (ade *DefaultDensityEstimator) EstimateDensity(detections []postprocess.Result) (int, error) {
 	ade.mu.RLock()
 	defer ade.mu.RUnlock()
 
@@ -168,7 +169,7 @@ func (ade *DefaultDensityEstimator) EstimateDensity(detections []Result) (int, e
 	// Base object count (weighted by confidence if enabled)
 	if ade.config.WeightedByConfidence {
 		for _, detection := range detections {
-			densityScore += detection.Score
+			densityScore += float64(detection.Score)
 		}
 	} else {
 		densityScore = float64(len(detections))
@@ -204,7 +205,9 @@ func (ade *DefaultDensityEstimator) EstimateDensity(detections []Result) (int, e
 // Returns:
 //   - *DensityMetrics: Comprehensive density analysis results
 //   - error: An error if analysis fails
-func (ade *DefaultDensityEstimator) GetDensityMetrics(detections []Result) (*DensityMetrics, error) {
+func (ade *DefaultDensityEstimator) GetDensityMetrics(
+	detections []postprocess.Result,
+) (*DensityMetrics, error) {
 	ade.mu.RLock()
 	defer ade.mu.RUnlock()
 
@@ -212,7 +215,9 @@ func (ade *DefaultDensityEstimator) GetDensityMetrics(detections []Result) (*Den
 }
 
 // calculateDensityMetrics performs the core density analysis calculations.
-func (ade *DefaultDensityEstimator) calculateDensityMetrics(detections []Result) (*DensityMetrics, error) {
+func (ade *DefaultDensityEstimator) calculateDensityMetrics(
+	detections []postprocess.Result,
+) (*DensityMetrics, error) {
 	metrics := &DensityMetrics{
 		TotalObjects: len(detections),
 	}
@@ -236,7 +241,10 @@ func (ade *DefaultDensityEstimator) calculateDensityMetrics(detections []Result)
 }
 
 // calculateObjectSizeMetrics analyzes object size distribution
-func (ade *DefaultDensityEstimator) calculateObjectSizeMetrics(detections []Result, metrics *DensityMetrics) {
+func (ade *DefaultDensityEstimator) calculateObjectSizeMetrics(
+	detections []postprocess.Result,
+	metrics *DensityMetrics,
+) {
 	var totalArea, sumSquaredDiff float64
 	var areas []float64
 
@@ -265,13 +273,16 @@ func (ade *DefaultDensityEstimator) calculateObjectSizeMetrics(detections []Resu
 }
 
 // calculateConfidenceMetrics analyzes detection confidence distribution
-func (ade *DefaultDensityEstimator) calculateConfidenceMetrics(detections []Result, metrics *DensityMetrics) {
+func (ade *DefaultDensityEstimator) calculateConfidenceMetrics(
+	detections []postprocess.Result,
+	metrics *DensityMetrics,
+) {
 	confidences := make([]float64, len(detections))
 	var sum float64
 
 	for i, detection := range detections {
-		confidences[i] = detection.Score
-		sum += detection.Score
+		confidences[i] = float64(detection.Score)
+		sum += float64(detection.Score)
 	}
 
 	sort.Float64s(confidences)
@@ -298,48 +309,55 @@ func (ade *DefaultDensityEstimator) calculateConfidenceMetrics(detections []Resu
 }
 
 // calculateSpatialMetrics analyzes spatial distribution of objects.
-func (ade *DefaultDensityEstimator) calculateSpatialMetrics(detections []Result, metrics *DensityMetrics) {
-	var sumX, sumY int
-	minX, minY := math.MaxInt32, math.MaxInt32
-	maxX, maxY := math.MinInt32, math.MinInt32
+func (ade *DefaultDensityEstimator) calculateSpatialMetrics(
+	detections []postprocess.Result,
+	metrics *DensityMetrics,
+) {
+	panic("not implemented")
+	// var sumX, sumY float32
+	// minX, minY := images.MaxFloat32(0, 0), images.MaxFloat32(0, 0)
+	// maxX, maxY := images.MinFloat32(0, 0), images.MinFloat32(0, 0)
 
-	for _, detection := range detections {
-		centerX := (detection.Box.X1 + detection.Box.X2) / 2
-		centerY := (detection.Box.Y1 + detection.Box.Y2) / 2
+	// for _, detection := range detections {
+	// 	centerX := (detection.Box.X1 + detection.Box.X2) / 2
+	// 	centerY := (detection.Box.Y1 + detection.Box.Y2) / 2
 
-		sumX += centerX
-		sumY += centerY
+	// 	sumX += centerX
+	// 	sumY += centerY
 
-		// Update bounding region
-		if detection.Box.X1 < minX {
-			minX = detection.Box.X1
-		}
-		if detection.Box.X2 > maxX {
-			maxX = detection.Box.X2
-		}
-		if detection.Box.Y1 < minY {
-			minY = detection.Box.Y1
-		}
-		if detection.Box.Y2 > maxY {
-			maxY = detection.Box.Y2
-		}
-	}
+	// 	// Update bounding region
+	// 	if detection.Box.X1 < minX {
+	// 		minX = detection.Box.X1
+	// 	}
+	// 	if detection.Box.X2 > maxX {
+	// 		maxX = detection.Box.X2
+	// 	}
+	// 	if detection.Box.Y1 < minY {
+	// 		minY = detection.Box.Y1
+	// 	}
+	// 	if detection.Box.Y2 > maxY {
+	// 		maxY = detection.Box.Y2
+	// 	}
+	// }
 
-	metrics.CenterOfMass = image.Point{
-		X: sumX / len(detections),
-		Y: sumY / len(detections),
-	}
+	// metrics.CenterOfMass = image.Point{
+	// 	X: sumX / len(detections),
+	// 	Y: sumY / len(detections),
+	// }
 
-	if minX != math.MaxInt32 {
-		metrics.BoundingRegion = image.Rect(minX, minY, maxX, maxY)
-	}
+	// if minX != math.MaxInt32 {
+	// 	metrics.BoundingRegion = image.Rect(minX, minY, maxX, maxY)
+	// }
 
-	// Calculate spatial density (objects per 1000 pixels)
-	metrics.SpatialDensity = float64(len(detections)) / float64(ade.config.FrameArea) * 1000.0
+	// // Calculate spatial density (objects per 1000 pixels)
+	// metrics.SpatialDensity = float64(len(detections)) / float64(ade.config.FrameArea) * 1000.0
 }
 
 // calculateClusteringMetrics analyzes how clustered objects are in space.
-func (ade *DefaultDensityEstimator) calculateClusteringMetrics(detections []Result, metrics *DensityMetrics) {
+func (ade *DefaultDensityEstimator) calculateClusteringMetrics(
+	detections []postprocess.Result,
+	metrics *DensityMetrics,
+) {
 	if len(detections) < 2 {
 		metrics.ClusteringCoefficient = 0.0
 		return
@@ -350,14 +368,14 @@ func (ade *DefaultDensityEstimator) calculateClusteringMetrics(detections []Resu
 
 	for i := 0; i < len(detections); i++ {
 		centerI := image.Point{
-			X: (detections[i].Box.X1 + detections[i].Box.X2) / 2,
-			Y: (detections[i].Box.Y1 + detections[i].Box.Y2) / 2,
+			X: int((detections[i].Box.X1 + detections[i].Box.X2) / 2),
+			Y: int((detections[i].Box.Y1 + detections[i].Box.Y2) / 2),
 		}
 
 		for j := i + 1; j < len(detections); j++ {
 			centerJ := image.Point{
-				X: (detections[j].Box.X1 + detections[j].Box.X2) / 2,
-				Y: (detections[j].Box.Y1 + detections[j].Box.Y2) / 2,
+				X: int((detections[j].Box.X1 + detections[j].Box.X2) / 2),
+				Y: int((detections[j].Box.Y1 + detections[j].Box.Y2) / 2),
 			}
 
 			distance := math.Sqrt(
@@ -378,7 +396,10 @@ func (ade *DefaultDensityEstimator) calculateClusteringMetrics(detections []Resu
 }
 
 // calculateOverlapMetrics analyzes overlapping objects.
-func (ade *DefaultDensityEstimator) calculateOverlapMetrics(detections []Result, metrics *DensityMetrics) {
+func (ade *DefaultDensityEstimator) calculateOverlapMetrics(
+	detections []postprocess.Result,
+	metrics *DensityMetrics,
+) {
 	if len(detections) < 2 {
 		metrics.OverlapRatio = 0.0
 		return
@@ -390,7 +411,16 @@ func (ade *DefaultDensityEstimator) calculateOverlapMetrics(detections []Result,
 		hasOverlap := false
 
 		for j := i + 1; j < len(detections); j++ {
-			iou := images.CalculateIoU(detections[i].Box, detections[j].Box)
+			iou := images.CalculateIoU(
+				detections[i].Box.X1,
+				detections[i].Box.Y1,
+				detections[i].Box.X2,
+				detections[i].Box.Y2,
+				detections[j].Box.X1,
+				detections[j].Box.Y1,
+				detections[j].Box.X2,
+				detections[j].Box.Y2,
+			)
 			if iou >= float32(ade.config.OverlapThreshold) {
 				hasOverlap = true
 				break
@@ -441,11 +471,11 @@ type StandardDensityEstimator struct {
 // Returns:
 //   - int: Count of objects meeting the minimum size requirement
 //   - error: An error if estimation fails
-func (sde *StandardDensityEstimator) EstimateDensity(detections []Result) (int, error) {
+func (sde *StandardDensityEstimator) EstimateDensity(detections []postprocess.Result) (int, error) {
 	count := 0
 	for _, d := range detections {
-		area := (d.Box.X2 - d.Box.X1) * (d.Box.Y2 - d.Box.Y1)
-		if area >= sde.MinBoxArea {
+		area := float64((d.Box.X2 - d.Box.X1) * (d.Box.Y2 - d.Box.Y1))
+		if area >= float64(sde.MinBoxArea) {
 			count++
 		}
 	}
@@ -460,7 +490,9 @@ func (sde *StandardDensityEstimator) EstimateDensity(detections []Result) (int, 
 // Returns:
 //   - *DensityMetrics: Basic density metrics
 //   - error: An error if analysis fails
-func (sde *StandardDensityEstimator) GetDensityMetrics(detections []Result) (*DensityMetrics, error) {
+func (sde *StandardDensityEstimator) GetDensityMetrics(
+	detections []postprocess.Result,
+) (*DensityMetrics, error) {
 	metrics := &DensityMetrics{
 		TotalObjects: len(detections),
 	}
@@ -470,7 +502,7 @@ func (sde *StandardDensityEstimator) GetDensityMetrics(detections []Result) (*De
 
 	for _, detection := range detections {
 		area := float64((detection.Box.X2 - detection.Box.X1) * (detection.Box.Y2 - detection.Box.Y1))
-		if int(area) >= sde.MinBoxArea {
+		if area >= float64(sde.MinBoxArea) {
 			validObjects++
 			totalArea += area
 		}

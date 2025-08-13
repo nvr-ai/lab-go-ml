@@ -60,3 +60,53 @@ func DecodeJPEGBytes(data []byte) (image.Image, error) {
 func DecodeJPEG(data []byte) (image.Image, error) {
 	return jpeg.Decode(bytes.NewReader(data))
 }
+
+// ApplyNMS applies Non-Maximum Suppression to remove overlapping bounding boxes.
+//
+// Arguments:
+//   - detections: The detections to apply NMS to.
+//   - nms: The Non-Maximum Suppression threshold.
+//
+// Returns:
+//   - The detections after applying NMS.
+func ApplyNMS(detections []Rect, nms float32) []Rect {
+	if len(detections) == 0 {
+		return detections
+	}
+
+	var result []Rect
+	used := make([]bool, len(detections))
+
+	for i := 0; i < len(detections); i++ {
+		if used[i] {
+			continue
+		}
+
+		result = append(result, detections[i])
+		used[i] = true
+
+		// Check overlap with remaining detections
+		for j := i + 1; j < len(detections); j++ {
+			if used[j] {
+				continue
+			}
+
+			// Calculate IoU
+			iou := CalculateIoU(
+				detections[i].X1,
+				detections[i].Y1,
+				detections[i].X2,
+				detections[i].Y2,
+				detections[j].X1,
+				detections[j].Y1,
+				detections[j].X2,
+				detections[j].Y2,
+			)
+			if iou > nms {
+				used[j] = true
+			}
+		}
+	}
+
+	return result
+}

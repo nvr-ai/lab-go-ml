@@ -2,14 +2,16 @@ package benchmark
 
 import (
 	"context"
-	"fmt"
+	"image"
 	"runtime"
 	"sync"
 	"time"
 
 	"github.com/nvr-ai/go-ml/images"
 	"github.com/nvr-ai/go-ml/inference"
+	"github.com/nvr-ai/go-ml/inference/detectors"
 	"github.com/nvr-ai/go-ml/inference/providers"
+	"github.com/nvr-ai/go-ml/models/model"
 	"github.com/nvr-ai/go-ml/util"
 )
 
@@ -24,14 +26,46 @@ type Suite struct {
 	results     []PerformanceMetrics
 }
 
-// NewSuite creates a new benchmark suite
-func NewSuite(outputDir string) *Suite {
-	engine := providers.New
-	engine.LoadModel(*modelPath, nil)
+// NewSuiteArgs represents the arguments for creating a new benchmark suite.
+type NewSuiteArgs struct {
+	Engine          inference.EngineType      `json:"engine"          yaml:"engine"`
+	ProviderMode    providers.ProviderMode    `json:"providerMode"    yaml:"providerMode"`
+	ProviderBackend providers.ProviderBackend `json:"providerBackend" yaml:"providerBackend"`
+	ProviderOptions providers.ProviderOptions `json:"providerOptions" yaml:"providerOptions"`
+	OutputPath      string                    `json:"outputPath"      yaml:"outputPath"`
+}
+
+// NewSuite creates a new benchmark suite.
+//
+// Arguments:
+//   - args: The arguments for creating a new benchmark suite.
+//
+// Returns:
+//   - *Suite: The benchmark suite.
+func NewSuite(args NewSuiteArgs) *Suite {
+	engine := inference.NewEngineBuilder().
+		WithProvider(providers.Config{
+			Backend: args.ProviderBackend,
+			Options: args.ProviderOptions,
+		}).
+		WithModel(model.NewModelArgs{
+			Family: model.ModelFamilyCOCO,
+			Path:   "models/coco/yolov8n.onnx",
+		}).
+		WithSession(providers.NewSessionArgs{
+			Provider:  engine.Provider(),
+			ModelPath: "models/coco/yolov8n.onnx",
+			Shape: image.Point{
+				X: 640,
+				Y: 640,
+			},
+		}).
+		WithDetector(detectors.Config{}).
+		MustBuild()
 
 	return &Suite{
 		engine:    engine,
-		outputDir: outputDir,
+		outputDir: args.OutputPath,
 		scenarios: make([]Scenario, 0),
 		results:   make([]PerformanceMetrics, 0),
 	}
@@ -46,16 +80,6 @@ func (bs *Suite) AddScenario(scenario Scenario) {
 
 // RunScenario executes a single benchmark scenario
 func (bs *Suite) RunScenario(ctx context.Context, scenario Scenario) (*PerformanceMetrics, error) {
-	// Load model
-	modelConfig := map[string]interface{}{
-		"input_shape":          []int{scenario.Resolution.Width, scenario.Resolution.Height},
-		"confidence_threshold": 0.5,
-		"nms_threshold":        0.4,
-	}
-
-	if err := bs.engine.LoadModel(scenario.ModelPath, modelConfig); err != nil {
-		return nil, fmt.Errorf("failed to load model: %w", err)
-	}
 	defer bs.engine.Close()
 
 	metrics := &PerformanceMetrics{

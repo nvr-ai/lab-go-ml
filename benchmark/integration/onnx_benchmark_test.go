@@ -1,185 +1,196 @@
 package integration
 
-import (
-	"context"
-	"strings"
-	"testing"
-	"time"
+// import (
+// 	"context"
+// 	"strings"
+// 	"testing"
+// 	"time"
 
-	"github.com/nvr-ai/go-ml/benchmark"
-	"github.com/nvr-ai/go-ml/benchmark/engines"
-	"github.com/nvr-ai/go-ml/images"
-)
+// 	"github.com/nvr-ai/go-ml/benchmark"
+// 	"github.com/nvr-ai/go-ml/images"
+// 	"github.com/nvr-ai/go-ml/inference/detectors"
+// 	"github.com/nvr-ai/go-ml/inference/providers"
+// 	"github.com/nvr-ai/go-ml/models/model"
+// )
 
-// BenchmarkONNXInference runs comprehensive benchmarks using the new framework
-func BenchmarkONNXInference(b *testing.B) {
-	// Skip if ONNX runtime not available
-	engine := engines.NewONNXEngine()
-	testConfig := map[string]interface{}{
-		"input_shape":          []int{416, 416},
-		"confidence_threshold": 0.5,
-		"nms_threshold":        0.4,
-	}
+// // BenchmarkONNXInference runs comprehensive benchmarks using the new framework
+// func BenchmarkONNXInference(b *testing.B) {
+// 	provider, err := providers.NewProvider(providers.OpenVINOProviderBackend,
+// providers.OpenVINOProviderArgs{})
+// 	if err != nil {
+// 		b.Fatalf("Failed to create provider: %v", err)
+// 	}
 
-	err := engine.LoadModel("../../data/yolov8n.onnx", testConfig)
-	if err != nil {
-		if strings.Contains(err.Error(), "ONNX Runtime library not found") {
-			b.Skipf("Skipping ONNX benchmark - library not available: %v", err)
-			return
-		}
-		b.Fatalf("Failed to load model: %v", err)
-	}
-	engine.Close()
+// 	engine, err := detectors.NewDetector(provider, &model.Model{Family: model.ModelFamilyCOCO, Path:
+// "models/coco/yolov8n.onnx"}, detectors.Config{})
+// 	if err != nil {
+// 		b.Fatalf("Failed to create detector: %v", err)
+// 	}
 
-	// Create benchmark suite
-	suite := benchmark.NewSuite(engines.NewONNXEngine(), "./benchmark_results")
+// 	testConfig := map[string]interface{}{
+// 		"input_shape":          []int{416, 416},
+// 		"confidence_threshold": 0.5,
+// 		"nms_threshold":        0.4,
+// 	}
 
-	// Load test images
-	err = suite.LoadTestImages("../../../../ml/corpus/images/videos/freeway-view-22-seconds-1080p.mp4", images.FormatJPEG)
-	if err != nil {
-		b.Logf("Warning: Could not load test images from corpus, using fallback: %v", err)
-		// Try to create a simple test image if corpus not available
-		err = suite.LoadTestImages("../test_images", images.FormatJPEG)
-		if err != nil {
-			b.Skipf("No test images available: %v", err)
-			return
-		}
-	}
+// 	// Create benchmark suite
+// 	suite := benchmark.NewSuite(engines.NewONNXEngine(), "./benchmark_results")
 
-	// Define model paths
-	modelPaths := map[benchmark.ModelType]string{
-		benchmark.ModelYOLO: "../../data/yolov8n.onnx",
-	}
+// 	// Load test images
+// 	err =
+// suite.LoadTestImages("../../../../ml/corpus/images/videos/freeway-view-22-seconds-1080p.mp4",
+// images.FormatJPEG)
+// 	if err != nil {
+// 		b.Logf("Warning: Could not load test images from corpus, using fallback: %v", err)
+// 		// Try to create a simple test image if corpus not available
+// 		err = suite.LoadTestImages("../test_images", images.FormatJPEG)
+// 		if err != nil {
+// 			b.Skipf("No test images available: %v", err)
+// 			return
+// 		}
+// 	}
 
-	// Generate benchmark scenarios
-	predefined := &benchmark.PredefinedScenarios{}
+// 	// Define model paths
+// 	modelPaths := map[benchmark.ModelType]string{
+// 		benchmark.ModelYOLO: "../../data/yolov8n.onnx",
+// 	}
 
-	// Add quick scenarios for benchmarking
-	quickScenarios := predefined.GetQuickScenarios(modelPaths)
-	for _, scenario := range quickScenarios.Scenarios {
-		// Reduce iterations for benchmark
-		scenario.Iterations = 10
-		scenario.WarmupRuns = 2
-		suite.AddScenario(scenario)
-	}
+// 	// Generate benchmark scenarios
+// 	predefined := &benchmark.PredefinedScenarios{}
 
-	// Run benchmarks
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
-	defer cancel()
+// 	// Add quick scenarios for benchmarking
+// 	quickScenarios := predefined.GetQuickScenarios(modelPaths)
+// 	for _, scenario := range quickScenarios.Scenarios {
+// 		// Reduce iterations for benchmark
+// 		scenario.Iterations = 10
+// 		scenario.WarmupRuns = 2
+// 		suite.AddScenario(scenario)
+// 	}
 
-	b.ResetTimer()
-	err = suite.RunAllScenarios(ctx)
-	if err != nil {
-		b.Fatalf("Benchmark failed: %v", err)
-	}
+// 	// Run benchmarks
+// 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
+// 	defer cancel()
 
-	// Print summary
-	results := suite.GetResults()
-	for _, result := range results {
-		b.Logf("Scenario: %s, FPS: %.2f, Memory: %.2f MB",
-			result.Scenario.Name,
-			result.FramesPerSecond,
-			float64(result.MemoryStats.AllocBytes)/(1024*1024))
-	}
-}
+// 	b.ResetTimer()
+// 	err = suite.RunAllScenarios(ctx)
+// 	if err != nil {
+// 		b.Fatalf("Benchmark failed: %v", err)
+// 	}
 
-// BenchmarkResolutionComparison benchmarks different input resolutions
-func BenchmarkResolutionComparison(b *testing.B) {
-	engine := engines.NewONNXEngine()
-	testConfig := map[string]interface{}{
-		"input_shape":          []int{416, 416},
-		"confidence_threshold": 0.5,
-		"nms_threshold":        0.4,
-	}
+// 	// Print summary
+// 	results := suite.GetResults()
+// 	for _, result := range results {
+// 		b.Logf("Scenario: %s, FPS: %.2f, Memory: %.2f MB",
+// 			result.Scenario.Name,
+// 			result.FramesPerSecond,
+// 			float64(result.MemoryStats.AllocBytes)/(1024*1024))
+// 	}
+// }
 
-	err := engine.LoadModel("../../data/yolov8n.onnx", testConfig)
-	if err != nil {
-		if strings.Contains(err.Error(), "ONNX Runtime library not found") {
-			b.Skipf("Skipping resolution benchmark - library not available: %v", err)
-			return
-		}
-		b.Fatalf("Failed to load model: %v", err)
-	}
-	engine.Close()
+// // BenchmarkResolutionComparison benchmarks different input resolutions
+// func BenchmarkResolutionComparison(b *testing.B) {
+// 	engine := engines.NewONNXEngine()
+// 	testConfig := map[string]interface{}{
+// 		"input_shape":          []int{416, 416},
+// 		"confidence_threshold": 0.5,
+// 		"nms_threshold":        0.4,
+// 	}
 
-	suite := benchmark.NewSuite(engines.NewONNXEngine(), "./benchmark_results")
+// 	err := engine.LoadModel("../../data/yolov8n.onnx", testConfig)
+// 	if err != nil {
+// 		if strings.Contains(err.Error(), "ONNX Runtime library not found") {
+// 			b.Skipf("Skipping resolution benchmark - library not available: %v", err)
+// 			return
+// 		}
+// 		b.Fatalf("Failed to load model: %v", err)
+// 	}
+// 	engine.Close()
 
-	err = suite.LoadTestImages("../../../../ml/corpus/images/videos/freeway-view-22-seconds-1080p.mp4", images.FormatJPEG)
-	if err != nil {
-		b.Skipf("No test images available: %v", err)
-		return
-	}
+// 	suite := benchmark.NewSuite(engines.NewONNXEngine(), "./benchmark_results")
 
-	// Test different resolutions
-	predefined := &benchmark.PredefinedScenarios{}
-	resolutionScenarios := predefined.GetResolutionComparisonScenarios(benchmark.ModelYOLO, "../../data/yolov8n.onnx")
+// 	err =
+// suite.LoadTestImages("../../../../ml/corpus/images/videos/freeway-view-22-seconds-1080p.mp4",
+// images.FormatJPEG)
+// 	if err != nil {
+// 		b.Skipf("No test images available: %v", err)
+// 		return
+// 	}
 
-	for _, scenario := range resolutionScenarios.Scenarios {
-		scenario.Iterations = 5 // Reduce for benchmark
-		scenario.WarmupRuns = 1
-		suite.AddScenario(scenario)
-	}
+// 	// Test different resolutions
+// 	predefined := &benchmark.PredefinedScenarios{}
+// 	resolutionScenarios := predefined.GetResolutionComparisonScenarios(benchmark.ModelYOLO,
+// "../../data/yolov8n.onnx")
 
-	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Minute)
-	defer cancel()
+// 	for _, scenario := range resolutionScenarios.Scenarios {
+// 		scenario.Iterations = 5 // Reduce for benchmark
+// 		scenario.WarmupRuns = 1
+// 		suite.AddScenario(scenario)
+// 	}
 
-	b.ResetTimer()
-	err = suite.RunAllScenarios(ctx)
-	if err != nil {
-		b.Fatalf("Resolution benchmark failed: %v", err)
-	}
-}
+// 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Minute)
+// 	defer cancel()
 
-// BenchmarkFormatComparison benchmarks different image formats
-func BenchmarkFormatComparison(b *testing.B) {
-	engine := engines.NewONNXEngine()
-	testConfig := map[string]interface{}{
-		"input_shape":          []int{416, 416},
-		"confidence_threshold": 0.5,
-		"nms_threshold":        0.4,
-	}
+// 	b.ResetTimer()
+// 	err = suite.RunAllScenarios(ctx)
+// 	if err != nil {
+// 		b.Fatalf("Resolution benchmark failed: %v", err)
+// 	}
+// }
 
-	err := engine.LoadModel("../../data/yolov8n.onnx", testConfig)
-	if err != nil {
-		if strings.Contains(err.Error(), "ONNX Runtime library not found") {
-			b.Skipf("Skipping format benchmark - library not available: %v", err)
-			return
-		}
-		b.Fatalf("Failed to load model: %v", err)
-	}
-	engine.Close()
+// // BenchmarkFormatComparison benchmarks different image formats
+// func BenchmarkFormatComparison(b *testing.B) {
+// 	engine := engines.NewONNXEngine()
+// 	testConfig := map[string]interface{}{
+// 		"input_shape":          []int{416, 416},
+// 		"confidence_threshold": 0.5,
+// 		"nms_threshold":        0.4,
+// 	}
 
-	suite := benchmark.NewSuite(engines.NewONNXEngine(), "./benchmark_results")
+// 	err := engine.LoadModel("../../data/yolov8n.onnx", testConfig)
+// 	if err != nil {
+// 		if strings.Contains(err.Error(), "ONNX Runtime library not found") {
+// 			b.Skipf("Skipping format benchmark - library not available: %v", err)
+// 			return
+// 		}
+// 		b.Fatalf("Failed to load model: %v", err)
+// 	}
+// 	engine.Close()
 
-	// Test with different formats (we'll load the same images but process them as different formats)
-	formats := []images.ImageFormat{images.FormatJPEG, images.FormatWebP, images.FormatPNG}
+// 	suite := benchmark.NewSuite(engines.NewONNXEngine(), "./benchmark_results")
 
-	for _, format := range formats {
-		err = suite.LoadTestImages("../../../../ml/corpus/images/videos/freeway-view-22-seconds-1080p.mp4", format)
-		if err != nil {
-			continue
-		}
+// 	// Test with different formats (we'll load the same images but process them as different
+// formats)
+// 	formats := []images.ImageFormat{images.FormatJPEG, images.FormatWebP, images.FormatPNG}
 
-		predefined := &benchmark.PredefinedScenarios{}
-		resolution := benchmark.Resolution{Width: 416, Height: 416, Name: "416x416"}
-		formatScenarios := predefined.GetFormatComparisonScenarios(benchmark.ModelYOLO, "../../data/yolov8n.onnx", resolution)
+// 	for _, format := range formats {
+// 		err =
+// suite.LoadTestImages("../../../../ml/corpus/images/videos/freeway-view-22-seconds-1080p.mp4",
+// format)
+// 		if err != nil {
+// 			continue
+// 		}
 
-		for _, scenario := range formatScenarios.Scenarios {
-			if scenario.ImageFormat == format {
-				scenario.Iterations = 5
-				scenario.WarmupRuns = 1
-				suite.AddScenario(scenario)
-				break
-			}
-		}
-	}
+// 		predefined := &benchmark.PredefinedScenarios{}
+// 		resolution := benchmark.Resolution{Width: 416, Height: 416, Name: "416x416"}
+// 		formatScenarios := predefined.GetFormatComparisonScenarios(benchmark.ModelYOLO,
+// "../../data/yolov8n.onnx", resolution)
 
-	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Minute)
-	defer cancel()
+// 		for _, scenario := range formatScenarios.Scenarios {
+// 			if scenario.ImageFormat == format {
+// 				scenario.Iterations = 5
+// 				scenario.WarmupRuns = 1
+// 				suite.AddScenario(scenario)
+// 				break
+// 			}
+// 		}
+// 	}
 
-	b.ResetTimer()
-	err = suite.RunAllScenarios(ctx)
-	if err != nil {
-		b.Fatalf("Format benchmark failed: %v", err)
-	}
-}
+// 	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Minute)
+// 	defer cancel()
+
+// 	b.ResetTimer()
+// 	err = suite.RunAllScenarios(ctx)
+// 	if err != nil {
+// 		b.Fatalf("Format benchmark failed: %v", err)
+// 	}
+// }

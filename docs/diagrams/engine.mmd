@@ -1,0 +1,94 @@
+---
+displayMode: compact
+config:
+  theme: redux
+---
+flowchart LR
+  classDef start stroke-width:4px, stroke:#46EDC8, fill:#DEFFF8, padding-top: 10px, padding-bottom: 10px
+  classDef main stroke:#545454, stroke-width:2px, fill:#7BE9FF, color:#1F1F1F
+  classDef return  stroke-width: 3px, stroke:#46EDC8, fill:#DEFFF8, color:#378E7A
+
+  subgraph engine factory["Engine Factory"]
+
+    engine --> provider & detector
+    engine@{ label: "<span style=\"color: gray; font-size: smaller\">inference</span><br><b>NewEngine(args)</b>" }
+    engine@{ shape: rounded}
+    class engine start
+
+    engine-->|routing rule|asdfsdf[Service]
+    service-->s[Pod]
+
+    provider ---> cpu
+    provider@{ shape: rounded, label: "<span style=\"color: gray; font-size: smaller\">providers</span><br><b>NewProvider()</b>" }
+    %% style provider stroke:#AA00FF, stroke-width:2px
+
+    detector ---> motion & object
+    detector@{ label: "<span style=\"color: gray; font-size: smaller\">detectors</span><br><b>NewDetector()</b>" }
+    detector@{ shape: rounded}
+    %% style detector stroke:#AA00FF, stroke-width:2px
+    
+    motion --> result
+    motion@{ label: "<span style=\"color: gray; font-size: smaller\">motion</span><br><b>NewMotionDetector()</b>" }
+    motion@{ shape: rounded}
+    %% style motion stroke:#AA00FF, stroke-width:2px
+    
+    object --> result
+    object@{ label: "<span style=\"color: gray; font-size: smaller\">object</span><br><b>NewObjectDetector()</b>" }
+    object@{ shape: rounded}
+    
+    cpu@{ label: "<span style=\"color: gray; font-size: smaller\">cpu</span><br><b>NewCPUProvider()</b>" }
+    cpu@{ shape: rounded}
+    cpu --> session
+
+    session@{ label: "<span style=\"color: gray; font-size: smaller\">session</span><br><b>NewSession()</b>" }
+    session@{ shape: rounded}
+    session --> result
+    class session main
+
+    result@{label: "<b>&inference.engine{}</b>"}
+    result@{shape: rounded}
+    class result return
+
+  end
+  
+  subgraph factory["Bootstrap ONNX Runtime"]
+    style factory fill:#eee, stroke:#AA00FF, stroke-width:2px
+
+    bootstrap@{label: "<b>NewSession()</b>"}
+    bootstrap@{shape: rounded}
+    class bootstrap main
+
+    bootstrap --> shape-input
+    bootstrap --> shape-output
+    bootstrap --> new-session-options
+
+    shape-input -- input --> tensor-input
+    shape-input@{shape: rounded}
+    shape-input@{label: "<b>NewShape()</b>"}
+
+    shape-output -- output --> tensor-output
+    shape-output@{shape: rounded}
+    shape-output@{label: "<b>NewShape()</b>"}
+
+    tensor-input -- input --> new-session-result
+    tensor-output -- output --> new-session-result
+
+
+    tensor-input@{label: "<b>NewEmptyTensor()</b>"}
+    tensor-input@{shape: rounded}
+    tensor-output@{label: "<b>NewEmptyTensor()</b>"}
+    tensor-output@{shape: rounded}
+
+    new-session-options -- options --> new-advanced-session
+    new-session-options@{shape: rounded}
+    new-session-options@{label: "<b>NewSessionOptions()</b>"}
+
+    new-advanced-session@{label: "<b>NewAdvancedSession()</b>"}
+    new-advanced-session@{shape: rounded}
+    new-advanced-session -- session --> new-session-result
+
+    new-session-result@{label: "<b>&inference.Session{}</b>"}
+    new-session-result@{shape: rounded}
+    class new-session-result return
+
+ end

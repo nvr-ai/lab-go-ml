@@ -33,7 +33,8 @@ func (b *BoundingBox) String() string {
 //
 // @example
 // box := BoundingBox{label: "person", confidence: 0.95, x1: 100, y1: 100, x2: 200, y2: 300}
-// fmt.Println(box.String()) // Output: Object person (confidence 0.950000): (100.00, 100.00), (200.00, 300.00)
+// fmt.Println(box.String()) // Output: Object person (confidence 0.950000): (100.00, 100.00),
+// (200.00, 300.00)
 
 // ToRect converts the bounding box to an image.Rectangle.
 //

@@ -2,9 +2,12 @@
 package detectors
 
 import (
+	"fmt"
 	"image"
 
 	"github.com/nvr-ai/go-ml/inference/providers"
+	"github.com/nvr-ai/go-ml/models"
+	"github.com/nvr-ai/go-ml/models/model"
 )
 
 // Config represents comprehensive configuration for ONNX detector with advanced optimization
@@ -15,38 +18,38 @@ import (
 type Config struct {
 	// Backend execution provider configuration
 	Provider providers.Config `json:"provider"`
-
-	// InputShape defines the default input dimensions (width, height)
-	InputShape image.Point `json:"input_shape"`
-
-	// ConfidenceThreshold filters detections below this confidence level
-	ConfidenceThreshold float32 `json:"confidence_threshold"`
-
-	// NMSThreshold controls Non-Maximum Suppression IoU threshold
-	NMSThreshold float32 `json:"nms_threshold"`
-
-	// RelevantClasses lists object classes to detect (empty = all classes)
-	RelevantClasses []string `json:"relevant_classes"`
+	// Model represents the model to use for inference
+	Model model.NewModelArgs `json:"model"`
+	// Shape defines the default input dimensions (width, height)
+	Shape image.Point `json:"shape"`
+	// Confidence filters detections below this confidence level
+	Confidence float32 `json:"confidence"`
+	// Nms controls Non-Maximum Suppression IoU threshold
+	Nms float32 `json:"nms"`
+	// Classes lists object classes to detect (empty = all classes)
+	Classes []models.ClassName `json:"classes"`
 }
 
-// DefaultConfig returns a production-ready configuration with sensible defaults
+// NewConfig returns a production-ready configuration with sensible defaults
 //
 // This configuration is optimized for typical object detection workloads with
 // balanced performance and resource usage characteristics.
 //
 // Returns:
 //   - Config: Production-ready configuration
-//
-// @example
-// config := DefaultConfig()
-// config.ModelPath = "path/to/model.onnx"
-// session, err := NewSession(config)
-func DefaultConfig() Config {
-	return Config{
-		Provider:            providers.DefaultConfig(),
-		InputShape:          image.Point{X: 640, Y: 640},
-		ConfidenceThreshold: 0.5,
-		NMSThreshold:        0.7,
-		RelevantClasses:     []string{},
+//   - error: An error if the configuration is not valid.
+func NewConfig(args Config) (*Config, error) {
+	provider, err := providers.NewConfig(args.Provider)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create provider: %w", err)
 	}
+
+	return &Config{
+		Provider:   *provider,
+		Model:      args.Model,
+		Shape:      args.Shape,
+		Confidence: args.Confidence,
+		Nms:        args.Nms,
+		Classes:    args.Classes,
+	}, nil
 }

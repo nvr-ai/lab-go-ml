@@ -137,7 +137,8 @@ package motion
 // 				report = true
 // 				status = fmt.Sprintf("Motion: %.1fs | Area: %.0f", duration.Seconds(), area)
 // 			} else {
-// 				status = fmt.Sprintf("Motion: %.1fs (min: %.1fs)", duration.Seconds(), d.MinMotionDuration.Seconds())
+// 				status = fmt.Sprintf("Motion: %.1fs (min: %.1fs)", duration.Seconds(),
+// d.MinMotionDuration.Seconds())
 // 			}
 // 		}
 // 	} else {

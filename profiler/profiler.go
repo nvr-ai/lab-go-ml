@@ -364,7 +364,10 @@ func (rp *RuntimeProfiler) emitStatusReport() {
 	if rp.memStats.NumGC > rp.lastGCCount {
 		fmt.Printf("\nGARBAGE COLLECTION:\n")
 		fmt.Printf("  GC Cycles: %d (new: %d)\n", rp.memStats.NumGC, rp.memStats.NumGC-rp.lastGCCount)
-		fmt.Printf("  Last GC: %v ago\n", time.Since(time.Unix(0, int64(rp.memStats.LastGC))).Truncate(time.Millisecond))
+		fmt.Printf(
+			"  Last GC: %v ago\n",
+			time.Since(time.Unix(0, int64(rp.memStats.LastGC))).Truncate(time.Millisecond),
+		)
 		fmt.Printf("  GC CPU Fraction: %.4f%%\n", rp.memStats.GCCPUFraction*100)
 		rp.lastGCCount = rp.memStats.NumGC
 	}

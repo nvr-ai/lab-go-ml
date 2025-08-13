@@ -1,0 +1,22 @@
+{
+  "startOnLoad": true,
+  "flowchart": {
+    "useMaxWidth": true,
+    "htmlLabels": true
+  },
+  "sequence": {
+    "height": 40,
+    "actorMargin": 80,
+    "mirrorActors": false,
+    "bottomMarginAdj": 1
+  },
+  "theme": "base",
+  "themeCSS": ".node rect { fill: rgba(255, 255, 255, 0.5) }",
+  "themeVariables": {
+    "background": "red",
+    "primaryTextColor": "#222",
+    "primaryBorderColor": "#AA00FF",
+    "lineColor": "#c0c0c0"
+  },
+  "fontFamily": "Monaco, Courier New, monospace"
+}

@@ -161,7 +161,8 @@ func ProcessDFINEOutput(
 // - An error if initialization fails.
 //
 // @example
-// session, err := InitDFINESession("dfine.onnx", 640, 640, []int{8, 16, 32}, []int{512, 1024, 2048})
+// session, err := InitDFINESession("dfine.onnx", 640, 640, []int{8, 16, 32}, []int{512, 1024,
+// 2048})
 //
 //	if err != nil {
 //	    log.Fatal(err)
@@ -465,7 +466,12 @@ func Run() int {
 	// Run detection 5 times for timing statistics
 	for i := 0; i < 5; i++ {
 		// Extract features (in real usage, this would come from a backbone CNN)
-		e = common.ExtractMultiScaleFeatures(pic, modelSession.FeatStrides, modelSession.FeatChannels[0], modelSession.FeatureMaps[0].GetData())
+		e = common.ExtractMultiScaleFeatures(
+			pic,
+			modelSession.FeatStrides,
+			modelSession.FeatChannels[0],
+			modelSession.FeatureMaps[0].GetData(),
+		)
 		if e != nil {
 			fmt.Printf("Error extracting features: %s\n", e)
 			return 1

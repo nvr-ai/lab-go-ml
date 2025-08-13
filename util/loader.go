@@ -47,7 +47,9 @@ func LoadDirectoryImageFiles(dir string) ([]ImageFile, error) {
 			if readErr != nil {
 				return nil, readErr
 			}
-			frame, err := strconv.Atoi(strings.TrimSuffix(strings.ReplaceAll(file.Name(), "frame-", ""), ext))
+			frame, err := strconv.Atoi(
+				strings.TrimSuffix(strings.ReplaceAll(file.Name(), "frame-", ""), ext),
+			)
 			if err != nil {
 				return nil, err
 			}

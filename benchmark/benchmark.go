@@ -141,8 +141,8 @@ func (bs *Suite) saveSummaryCSV(filename string, results []PerformanceMetrics) e
 		avgMemoryMB := float64(result.MemoryStats.AllocBytes) / (1024 * 1024)
 		line := fmt.Sprintf("%s,%s,%s,%s,%.2f,%.2f,%.2f,%d,%.4f\n",
 			result.Scenario.Name,
-			result.Scenario.ModelType,
-			result.Scenario.Resolution.Name,
+			result.Scenario.Model.Family,
+			result.Scenario.Resolution.Alias,
 			result.Scenario.ImageFormat,
 			result.FramesPerSecond,
 			float64(result.TotalDuration.Nanoseconds())/1e6,

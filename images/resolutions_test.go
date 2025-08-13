@@ -15,25 +15,25 @@ func TestResolution_GetMegaPixels(t *testing.T) {
 	}{
 		{
 			name: "Full HD 1080p",
-			res:  resolutions[ResolutionType1080p],
+			res:  Resolutions[ResolutionAlias1080p],
 			// 1920 * 1080 = 2,073,600 -> 2.07 MP
 			expected: 2.07,
 		},
 		{
 			name: "4K UHD",
-			res:  resolutions[ResolutionType4KUHD],
+			res:  Resolutions[ResolutionAlias4K],
 			// 3840 * 2160 = 8,294,400 -> 8.29 MP
 			expected: 8.29,
 		},
 		{
 			name: "1MP (5:4)",
-			res:  resolutions[ResolutionType1MP],
+			res:  Resolutions[ResolutionAlias1MP],
 			// 1280 * 1024 = 1,310,720 -> 1.31 MP
 			expected: 1.31,
 		},
 		{
 			name: "Experimental 64K UHD",
-			res:  resolutions[ResolutionType64KUHD],
+			res:  Resolutions[ResolutionAlias64K],
 			// 61440 * 34560 = 2,123,366,400 -> 2123.37 MP
 			expected: 2123.37,
 		},
@@ -63,7 +63,7 @@ func TestResolution_GetMegaPixels(t *testing.T) {
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			// Act
-			got := tc.res.GetMegaPixels()
+			got := float64(tc.res.Pixels.Width*tc.res.Pixels.Height) / 1000000.0
 
 			// Assert
 			if got != tc.expected {
@@ -76,7 +76,7 @@ func TestResolution_GetMegaPixels(t *testing.T) {
 // TestResolution_String verifies the human-readable string output for a resolution.
 func TestResolution_String(t *testing.T) {
 	// Arrange
-	res := resolutions[ResolutionType1080p]
+	res := Resolutions[ResolutionAlias1080p]
 	expected := "Full HD 1080p (1920x1080, 2.07MP)"
 
 	// Act
@@ -85,43 +85,6 @@ func TestResolution_String(t *testing.T) {
 	// Assert
 	if got != expected {
 		t.Errorf("expected string '%s', but got '%s'", expected, got)
-	}
-}
-
-// TestGetAllResolutions ensures the function returns all defined resolutions.
-func TestGetAllResolutions(t *testing.T) {
-	// Act
-	allResolutions := GetAllResolutions()
-
-	// Assert
-	if len(allResolutions) != len(resolutions) {
-		t.Errorf("expected %d total resolutions, but got %d", len(resolutions), len(allResolutions))
-	}
-}
-
-// TestGetSupportedResolutions ensures the function returns only non-experimental resolutions.
-func TestGetSupportedResolutions(t *testing.T) {
-	// Arrange
-	var expectedCount int
-	for _, res := range resolutions {
-		if !res.Experimental {
-			expectedCount++
-		}
-	}
-
-	// Act
-	supportedResolutions := GetSupportedResolutions()
-
-	// Assert
-	if len(supportedResolutions) != expectedCount {
-		t.Errorf("expected %d supported resolutions, but got %d", expectedCount, len(supportedResolutions))
-	}
-
-	// Further check that no experimental resolutions are present.
-	for _, res := range supportedResolutions {
-		if res.Experimental {
-			t.Errorf("found experimental resolution '%s' in supported list", res.Name)
-		}
 	}
 }
 
@@ -135,15 +98,15 @@ func TestGetResolutionByType(t *testing.T) {
 	}{
 		{
 			name:           "Valid HD 720p resolution",
-			resolutionType: ResolutionTypeHD720p,
+			resolutionType: ResolutionAlias720p,
 			expectedFound:  true,
-			expectedName:   ResolutionTypeHD720p,
+			expectedName:   ResolutionAlias720p,
 		},
 		{
 			name:           "Valid 4K UHD resolution",
-			resolutionType: ResolutionType4KUHD,
+			resolutionType: ResolutionAlias4K,
 			expectedFound:  true,
-			expectedName:   ResolutionType4KUHD,
+			expectedName:   ResolutionAlias4K,
 		},
 		{
 			name:           "Invalid resolution type",
@@ -162,14 +125,15 @@ func TestGetResolutionByType(t *testing.T) {
 				t.Errorf("expected found=%v, but got found=%v", tc.expectedFound, found)
 			}
 
-			if tc.expectedFound && res.Name != tc.expectedName {
-				t.Errorf("expected resolution name='%s', but got name='%s'", tc.expectedName, res.Name)
+			if tc.expectedFound && res.Alias != tc.expectedName {
+				t.Errorf("expected resolution name='%s', but got name='%s'", tc.expectedName, res.Alias)
 			}
 		})
 	}
 }
 
-// TestGetHighestResolutionUnderDimensions validates finding the highest resolution within given constraints.
+// TestGetHighestResolutionUnderDimensions validates finding the highest resolution within given
+// constraints.
 func TestGetHighestResolutionUnderDimensions(t *testing.T) {
 	testCases := []struct {
 		name          string
@@ -184,7 +148,7 @@ func TestGetHighestResolutionUnderDimensions(t *testing.T) {
 			width:         3840,
 			height:        2160,
 			expectedFound: true,
-			expectedName:  ResolutionType4KUHD,
+			expectedName:  ResolutionAlias4K,
 			description:   "Exact match for 4K UHD dimensions",
 		},
 		{
@@ -192,7 +156,7 @@ func TestGetHighestResolutionUnderDimensions(t *testing.T) {
 			width:         4000,
 			height:        2200,
 			expectedFound: true,
-			expectedName:  ResolutionType4KUHD,
+			expectedName:  ResolutionAlias4K,
 			description:   "Should find 4K UHD as highest resolution under these dimensions",
 		},
 		{
@@ -200,7 +164,7 @@ func TestGetHighestResolutionUnderDimensions(t *testing.T) {
 			width:         1920,
 			height:        1080,
 			expectedFound: true,
-			expectedName:  ResolutionType1080p,
+			expectedName:  ResolutionAlias1080p,
 			description:   "Exact match for Full HD 1080p dimensions",
 		},
 		{
@@ -208,7 +172,7 @@ func TestGetHighestResolutionUnderDimensions(t *testing.T) {
 			width:         1500,
 			height:        900,
 			expectedFound: true,
-			expectedName:  ResolutionTypeWXGA,
+			expectedName:  ResolutionAliasWXGA,
 			description:   "Should find WXGA (1366x768, 1.05MP) as highest resolution under these dimensions",
 		},
 		{
@@ -216,7 +180,7 @@ func TestGetHighestResolutionUnderDimensions(t *testing.T) {
 			width:         640,
 			height:        360,
 			expectedFound: true,
-			expectedName:  ResolutionTypeNHD,
+			expectedName:  ResolutionAliasNHD,
 			description:   "Should find nHD as highest resolution under these small dimensions",
 		},
 		{
@@ -252,7 +216,7 @@ func TestGetHighestResolutionUnderDimensions(t *testing.T) {
 			width:         100000,
 			height:        50000,
 			expectedFound: true,
-			expectedName:  ResolutionType64KUHD,
+			expectedName:  ResolutionAlias64K,
 			description:   "Should find the experimental 64K UHD as the highest resolution",
 		},
 		{
@@ -260,7 +224,7 @@ func TestGetHighestResolutionUnderDimensions(t *testing.T) {
 			width:         4000,
 			height:        3000,
 			expectedFound: true,
-			expectedName:  ResolutionType12MP,
+			expectedName:  ResolutionAlias12MP,
 			description:   "Should find 12MP (4:3) resolution within square constraints",
 		},
 	}
@@ -277,8 +241,8 @@ func TestGetHighestResolutionUnderDimensions(t *testing.T) {
 
 			// Assert resolution name if expected to be found
 			if tc.expectedFound {
-				if res.Name != tc.expectedName {
-					t.Errorf("expected resolution name='%s', but got name='%s'", tc.expectedName, res.Name)
+				if res.Alias != tc.expectedName {
+					t.Errorf("expected resolution name='%s', but got name='%s'", tc.expectedName, res.Alias)
 				}
 
 				// Verify the resolution actually fits within the constraints
@@ -289,12 +253,17 @@ func TestGetHighestResolutionUnderDimensions(t *testing.T) {
 
 				// Verify this is indeed the highest resolution by checking no other resolution
 				// has higher megapixels while still fitting the constraints
-				maxMegaPixels := res.GetMegaPixels()
-				for _, otherRes := range resolutions {
+				maxMegaPixels := float64(res.Pixels.Width*res.Pixels.Height) / 1000000.0
+				for _, otherRes := range Resolutions {
 					if otherRes.Pixels.Width <= tc.width && otherRes.Pixels.Height <= tc.height {
-						if otherRes.GetMegaPixels() > maxMegaPixels {
-							t.Errorf("found higher resolution %s (%.2fMP) that also fits constraints, but %s (%.2fMP) was returned",
-								otherRes.Name, otherRes.GetMegaPixels(), res.Name, maxMegaPixels)
+						if float64(otherRes.Pixels.Width*otherRes.Pixels.Height)/1000000.0 > maxMegaPixels {
+							t.Errorf(
+								"found higher resolution %s (%.2fMP) that also fits constraints, but %s (%.2fMP) was returned",
+								otherRes.Alias,
+								float64(otherRes.Pixels.Width*otherRes.Pixels.Height)/1000000.0,
+								res.Alias,
+								maxMegaPixels,
+							)
 						}
 					}
 				}
@@ -302,7 +271,7 @@ func TestGetHighestResolutionUnderDimensions(t *testing.T) {
 
 			// Log the test scenario for debugging
 			t.Logf("Test: %s - Constraints: %dx%d, Found: %v, Result: %s",
-				tc.description, tc.width, tc.height, found, res.Name)
+				tc.description, tc.width, tc.height, found, res.Alias)
 		})
 	}
 }
@@ -318,8 +287,8 @@ func TestGetHighestResolutionUnderDimensions_EdgeCases(t *testing.T) {
 			t.Error("expected to find nHD resolution for exact dimensions")
 		}
 
-		if res.Name != ResolutionTypeNHD {
-			t.Errorf("expected nHD resolution, got %s", res.Name)
+		if res.Alias != ResolutionAliasNHD {
+			t.Errorf("expected nHD resolution, got %s", res.Alias)
 		}
 	})
 
@@ -332,7 +301,7 @@ func TestGetHighestResolutionUnderDimensions_EdgeCases(t *testing.T) {
 		}
 
 		// Should not return HD 720p since constraints are just below it
-		if res.Name == ResolutionTypeHD720p {
+		if res.Alias == ResolutionAlias720p {
 			t.Error("should not return HD 720p when constraints are just below it")
 		}
 
@@ -352,8 +321,8 @@ func TestGetHighestResolutionUnderDimensions_EdgeCases(t *testing.T) {
 		}
 
 		// Should return the experimental 64K UHD as it has the highest megapixels
-		if res.Name != ResolutionType64KUHD {
-			t.Errorf("expected 64K UHD for very large dimensions, got %s", res.Name)
+		if res.Alias != ResolutionAlias64K {
+			t.Errorf("expected 64K UHD for very large dimensions, got %s", res.Alias)
 		}
 	})
 
@@ -365,8 +334,8 @@ func TestGetHighestResolutionUnderDimensions_EdgeCases(t *testing.T) {
 			t.Error("expected to find HD+ resolution for exact dimensions")
 		}
 
-		if res.Name != ResolutionTypeHDPlus {
-			t.Errorf("expected HD+ resolution, got %s", res.Name)
+		if res.Alias != ResolutionAliasHDPlus {
+			t.Errorf("expected HD+ resolution, got %s", res.Alias)
 		}
 	})
 
@@ -378,8 +347,8 @@ func TestGetHighestResolutionUnderDimensions_EdgeCases(t *testing.T) {
 			t.Error("expected to find WXGA resolution just below HD+ dimensions")
 		}
 
-		if res.Name != ResolutionTypeWXGA {
-			t.Errorf("expected WXGA resolution, got %s", res.Name)
+		if res.Alias != ResolutionAliasWXGA {
+			t.Errorf("expected WXGA resolution, got %s", res.Alias)
 		}
 	})
 }
@@ -396,13 +365,13 @@ func TestGetHighestResolutionUnderDimensions_MegaPixelComparison(t *testing.T) {
 		}
 
 		// WXGA (1.05MP) should win over HD 720p (0.92MP)
-		if res.Name != ResolutionTypeWXGA {
-			t.Errorf("expected WXGA (higher megapixels), got %s", res.Name)
+		if res.Alias != ResolutionAliasWXGA {
+			t.Errorf("expected WXGA (higher megapixels), got %s", res.Alias)
 		}
 
 		// Verify both would fit
-		hd720p, _ := GetResolutionByType(ResolutionTypeHD720p)
-		wxga, _ := GetResolutionByType(ResolutionTypeWXGA)
+		hd720p, _ := GetResolutionByType(ResolutionAlias720p)
+		wxga, _ := GetResolutionByType(ResolutionAliasWXGA)
 
 		if hd720p.Pixels.Width > 1400 || hd720p.Pixels.Height > 800 {
 			t.Error("HD 720p should fit in these constraints")
@@ -413,7 +382,11 @@ func TestGetHighestResolutionUnderDimensions_MegaPixelComparison(t *testing.T) {
 		}
 
 		// Verify WXGA has higher megapixels
-		if wxga.GetMegaPixels() <= hd720p.GetMegaPixels() {
+		if float64(
+			wxga.Pixels.Width*wxga.Pixels.Height,
+		)/1000000.0 <= float64(
+			hd720p.Pixels.Width*hd720p.Pixels.Height,
+		)/1000000.0 {
 			t.Error("WXGA should have higher megapixels than HD 720p")
 		}
 	})

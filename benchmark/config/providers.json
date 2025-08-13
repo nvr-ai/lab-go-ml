@@ -1,0 +1,172 @@
+[
+  {
+    "name": "high",
+    "engine": {
+      "backend": "openvino",
+      "options": {
+        "deviceID": "0",
+        "deviceType": "CPU",
+        "precision": 0.5,
+        "numOfThreads": 4
+      },
+      "optimization": {
+        "graph_optimization_level": 2,
+        "enable_memory_pattern": true,
+        "enable_cpu_mem_arena": true,
+        "enable_memory_optimization": true,
+        "execution_mode": 1,
+        "intra_op_num_threads": 4,
+        "inter_op_num_threads": 2,
+        "use_profiling_options": false,
+        "profiling_output_path": "",
+        "shape_profiles": [],
+        "execution_providers": [
+          {
+            "provider": "cuda",
+            "options": {},
+            "priority": 100,
+            "enabled": true
+          },
+          {
+            "provider": "coreml",
+            "options": {},
+            "priority": 90,
+            "enabled": true
+          }
+        ],
+        "enable_graph_fusion": true,
+        "disallowed_optimizers": []
+      },
+      "min_shape": {
+        "X": 320,
+        "Y": 320
+      },
+      "max_shape": {
+        "X": 1024,
+        "Y": 1024
+      },
+      "warmup": 0,
+      "outputPath": "output",
+      "operators": [
+        {
+          "name": "object-detector",
+          "config": {
+            "model": {
+              "family": "yolo",
+              "path": "models/yolo/yolov8n.onnx"
+            },
+            "shape": {
+              "width": 640,
+              "height": 640
+            },
+            "confidence": 0.5,
+            "nms": 0.4,
+            "classes": ["person", "car", "cat"]
+          }
+        }
+      ],
+      "provider": {
+        "backend": "cpu",
+
+        "profiler": {
+          "output_path": "high.json"
+        }
+      }
+    },
+    "profile": false,
+    "profiling_path": "",
+    "warmup": 10,
+    "session_pooling": true,
+    "session_pool_size": 8
+  },
+  {
+    "name": "medium",
+    "provider": "cpu",
+    "optimization": {
+      "graph_optimization_level": 2,
+      "enable_memory_pattern": true,
+      "enable_cpu_mem_arena": true,
+      "enable_memory_optimization": true,
+      "execution_mode": 1,
+      "intra_op_num_threads": 2,
+      "inter_op_num_threads": 1,
+      "use_profiling_options": false,
+      "profiling_output_path": "",
+      "shape_profiles": [],
+      "execution_providers": [
+        {
+          "provider": "cpu",
+          "options": {},
+          "priority": 10,
+          "enabled": true
+        },
+        {
+          "provider": "coreml",
+          "options": {},
+          "priority": 90,
+          "enabled": true
+        }
+      ],
+      "enable_graph_fusion": true,
+      "disallowed_optimizers": []
+    },
+    "min_shape": {
+      "X": 320,
+      "Y": 320
+    },
+    "max_shape": {
+      "X": 1024,
+      "Y": 1024
+    },
+    "profile": false,
+    "profiling_path": "",
+    "warmup": 3,
+    "session_pooling": false,
+    "session_pool_size": 4
+  },
+  {
+    "name": "low",
+    "provider": "cpu",
+    "optimization": {
+      "graph_optimization_level": 0,
+      "enable_memory_pattern": false,
+      "enable_cpu_mem_arena": true,
+      "enable_memory_optimization": true,
+      "execution_mode": 0,
+      "intra_op_num_threads": 1,
+      "inter_op_num_threads": 1,
+      "use_profiling_options": false,
+      "profiling_output_path": "",
+      "shape_profiles": [],
+      "execution_providers": [
+        {
+          "provider": "cpu",
+          "options": {},
+          "priority": 10,
+          "enabled": true
+        },
+        {
+          "provider": "coreml",
+          "options": {},
+          "priority": 90,
+          "enabled": true
+        }
+      ],
+      "enable_graph_fusion": true,
+      "disallowed_optimizers": []
+    },
+    "min_shape": {
+      "X": 320,
+      "Y": 320
+    },
+    "max_shape": {
+      "X": 1024,
+      "Y": 1024
+    },
+    "profile": false,
+    "profiling_path": "",
+    "warmup": 15,
+    "session_pooling": true,
+    "session_pool_size": 2
+  }
+]

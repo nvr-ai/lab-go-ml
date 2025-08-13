@@ -2,11 +2,13 @@
 
 ## Commands
 
-| Command | Description |
-|----|----|
-| `make tidy` | Tidy up the go.mod file |
-| `make gocv/webcam` | Run the gocv webcam test |
+| Command                           | Description                             |
+| --------------------------------- | --------------------------------------- |
+| `make tidy`                       | Tidy up the go.mod file                 |
+| `make gocv/webcam`                | Run the gocv webcam test                |
 | `make gorgonia/tiny-yolo-v3-coco` | Run the gorgonia tiny-yolo-v3-coco test |
+
+
 
 ## Testing
 
@@ -50,8 +52,8 @@ make gocv/webcam
 
 ## Test Coverage
 
-* `BenchmarkSubtractBackground` - Background subtraction only.
-* `BenchmarkFullPipeline` - Full motion segmentation pipeline.
+- `BenchmarkSubtractBackground` - Background subtraction only.
+- `BenchmarkFullPipeline` - Full motion segmentation pipeline.
 
 ## Benchmark Coverage
 
@@ -59,34 +61,33 @@ The benchmark suite provides comprehensive coverage for performance and regressi
 
 ### Motion Detection Component Benchmarks (motion/detector.go)
 
-* `BenchmarkMotionDetectorProcess` - Core motion processing logic (185ns/op).
-* `BenchmarkMotionDetectorFPS` - FPS calculation performance.
-* `BenchmarkMotionDetectorMetrics` - Metrics collection overhead.
+- `BenchmarkMotionDetectorProcess` - Core motion processing logic (185ns/op).
+- `BenchmarkMotionDetectorFPS` - FPS calculation performance.
+- `BenchmarkMotionDetectorMetrics` - Metrics collection overhead.
 
 ### Motion Segmentation Component Benchmarks (images/motion.go)
 
-* `BenchmarkApplyThreshold` - Thresholding operation (51μs/op).
-* `BenchmarkFillGaps` - Morphological operations.
-* `BenchmarkDetectContours` - Contour detection performance.
+- `BenchmarkApplyThreshold` - Thresholding operation (51μs/op).
+- `BenchmarkFillGaps` - Morphological operations.
+- `BenchmarkDetectContours` - Contour detection performance.
 
 ### Integration & Advanced Benchmarks
 
-* `BenchmarkIntegratedMotionDetection` - End-to-end pipeline (11.37ms/op).
-* `BenchmarkMultiResolution` - Performance across 480p/720p/1080p/4K.
-* `BenchmarkMemoryAllocation` - Memory allocation patterns.
-* `BenchmarkConcurrentProcessing` - Multi-threaded performance.
+- `BenchmarkIntegratedMotionDetection` - End-to-end pipeline (11.37ms/op).
+- `BenchmarkMultiResolution` - Performance across 480p/720p/1080p/4K.
+- `BenchmarkMemoryAllocation` - Memory allocation patterns.
+- `BenchmarkConcurrentProcessing` - Multi-threaded performance.
 
 ### Stress & Edge Case Benchmarks
 
-* `BenchmarkLongRunningDetection` - Memory stability over time.
-* `BenchmarkHighMotionScenario` - Multiple motion regions (21.55ms/op).
-* `BenchmarkNoiseResilience` - Performance with noisy input.
-* `BenchmarkRapidSceneChanges` - Scene transition handling.
-* `BenchmarkProfilerOverhead` - Profiling impact measurement.
-* `BenchmarkEdgeCaseFrames` - Edge cases (black/white/gradient frames).
+- `BenchmarkLongRunningDetection` - Memory stability over time.
+- `BenchmarkHighMotionScenario` - Multiple motion regions (21.55ms/op).
+- `BenchmarkNoiseResilience` - Performance with noisy input.
+- `BenchmarkRapidSceneChanges` - Scene transition handling.
+- `BenchmarkProfilerOverhead` - Profiling impact measurement.
+- `BenchmarkEdgeCaseFrames` - Edge cases (black/white/gradient frames).
 
 ### Key Features
-
 
 1. Result Persistence: All benchmarks save detailed JSON results with metadata. (e.g. `results/motion_detector_benchmark_results.json`).
 2. Memory Tracking: Heap allocation monitoring and GC cycle tracking.
@@ -97,9 +98,7 @@ The benchmark suite provides comprehensive coverage for performance and regressi
 
 ### Performance Insights
 
-* Motion Detection Logic: 185ns per process operation (very fast).
-* Thresholding: 51μs per operation (1920x1080).
-* End-to-End Pipeline: 11.37ms per frame (88 FPS potential).
-* High Motion Stress: 21.55ms per frame (46 FPS under stress).
-
-
+- Motion Detection Logic: 185ns per process operation (very fast).
+- Thresholding: 51μs per operation (1920x1080).
+- End-to-End Pipeline: 11.37ms per frame (88 FPS potential).
+- High Motion Stress: 21.55ms per frame (46 FPS under stress).

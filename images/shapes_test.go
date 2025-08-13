@@ -61,13 +61,31 @@ func TestIoU_Correctness(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			result := CalculateIoU(tt.r1, tt.r2)
+			result := CalculateIoU(
+				tt.r1.X1,
+				tt.r1.Y1,
+				tt.r1.X2,
+				tt.r1.Y2,
+				tt.r2.X1,
+				tt.r2.Y1,
+				tt.r2.X2,
+				tt.r2.Y2,
+			)
 			if math.Abs(float64(result-tt.expected)) > float64(tt.epsilon) {
 				t.Errorf("IoU() = %v, expected %v (±%v)", result, tt.expected, tt.epsilon)
 			}
 
 			// Test symmetry: IoU(A, B) should equal IoU(B, A)
-			reverse := CalculateIoU(tt.r2, tt.r1)
+			reverse := CalculateIoU(
+				tt.r2.X1,
+				tt.r2.Y1,
+				tt.r2.X2,
+				tt.r2.Y2,
+				tt.r1.X1,
+				tt.r1.Y1,
+				tt.r1.X2,
+				tt.r1.Y2,
+			)
 			if math.Abs(float64(result-reverse)) > float64(tt.epsilon) {
 				t.Errorf("IoU not symmetric: IoU(A,B)=%v != IoU(B,A)=%v", result, reverse)
 			}
@@ -92,7 +110,16 @@ func TestIoU_vs_ImageRectangle(t *testing.T) {
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			// Our implementation
-			customResult := CalculateIoU(tc.r1, tc.r2)
+			customResult := CalculateIoU(
+				tc.r1.X1,
+				tc.r1.Y1,
+				tc.r1.X2,
+				tc.r1.Y2,
+				tc.r2.X1,
+				tc.r2.Y1,
+				tc.r2.X2,
+				tc.r2.Y2,
+			)
 
 			// image.Rectangle implementation
 			ir1 := image.Rect(tc.r1.X1, tc.r1.Y1, tc.r1.X2, tc.r1.Y2)
@@ -140,13 +167,31 @@ func TestIoU_EdgeCases(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			// Should not panic and should return valid result
-			result := CalculateIoU(tt.r1, tt.r2)
+			result := CalculateIoU(
+				tt.r1.X1,
+				tt.r1.Y1,
+				tt.r1.X2,
+				tt.r1.Y2,
+				tt.r2.X1,
+				tt.r2.Y1,
+				tt.r2.X2,
+				tt.r2.Y2,
+			)
 			if result < 0.0 || result > 1.0 {
 				t.Errorf("IoU result %v is outside valid range [0.0, 1.0]", result)
 			}
 
 			// Should not panic with reverse order
-			reverseResult := CalculateIoU(tt.r2, tt.r1)
+			reverseResult := CalculateIoU(
+				tt.r2.X1,
+				tt.r2.Y1,
+				tt.r2.X2,
+				tt.r2.Y2,
+				tt.r1.X1,
+				tt.r1.Y1,
+				tt.r1.X2,
+				tt.r1.Y2,
+			)
 			if reverseResult < 0.0 || reverseResult > 1.0 {
 				t.Errorf("Reverse IoU result %v is outside valid range [0.0, 1.0]", reverseResult)
 			}

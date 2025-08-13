@@ -167,7 +167,11 @@ func ResizePNGToImage(b []byte, width, height int) (image.Image, error) {
 
 // ResizeImageToImage provides a unified interface to resize images of different formats
 // to image.Image, suitable for ONNX runtime inference.
-func ResizeImageToImage(imageBytes []byte, width, height int, format ImageFormat) (image.Image, error) {
+func ResizeImageToImage(
+	imageBytes []byte,
+	width, height int,
+	format ImageFormat,
+) (image.Image, error) {
 	if len(imageBytes) == 0 {
 		return nil, fmt.Errorf("empty image data")
 	}

@@ -9,12 +9,13 @@ import (
 
 	"github.com/nvr-ai/go-ml/images"
 	"github.com/nvr-ai/go-ml/inference"
+	"github.com/nvr-ai/go-ml/models/model"
 )
 
 // Scenario defines a specific test configuration
 type Scenario struct {
 	Name        string               `json:"name"`
-	ModelPath   string               `json:"model_path"`
+	Model       model.Config         `json:"model"`
 	EngineType  inference.EngineType `json:"engine_type"`
 	Resolution  images.Resolution    `json:"resolution"`
 	ImageFormat images.ImageFormat   `json:"image_format"`
@@ -47,8 +48,8 @@ func (sb *ScenarioBuilder) WithEngineType(engineType inference.EngineType) *Scen
 }
 
 // WithModel sets the model configuration
-func (sb *ScenarioBuilder) WithModel(modelPath string) *ScenarioBuilder {
-	sb.scenario.ModelPath = modelPath
+func (sb *ScenarioBuilder) WithModel(model model.Config) *ScenarioBuilder {
+	sb.scenario.Model = model
 	return sb
 }
 
@@ -101,15 +102,15 @@ type ScenarioSet struct {
 type PredefinedScenarios struct{}
 
 // GetComprehensiveScenarios returns a comprehensive set of benchmark scenarios
-func (ps *PredefinedScenarios) GetComprehensiveScenarios(modelPaths map[ModelType]string) *ScenarioSet {
+func (ps *PredefinedScenarios) GetComprehensiveScenarios(models []model.Config) *ScenarioSet {
 	scenarios := make([]Scenario, 0)
 
 	// Test different resolutions for each model and format combination
-	for modelType, modelPath := range modelPaths {
-		for _, resolution := range images.GetAllResolutions() {
+	for _, m := range models {
+		for _, resolution := range images.Resolutions {
 			for _, format := range []images.ImageFormat{images.FormatJPEG, images.FormatWebP, images.FormatPNG} {
-				scenario := NewScenarioBuilder(fmt.Sprintf("%s_%s_%s", modelType, resolution.Alias, format)).
-					WithModel(modelType, modelPath).
+				scenario := NewScenarioBuilder(fmt.Sprintf("%s_%s_%s", m.Family, resolution.Alias, format)).
+					WithModel(m).
 					WithResolution(resolution.Pixels.Width, resolution.Pixels.Height).
 					WithImageFormat(format).
 					WithIterations(100).
@@ -129,20 +130,20 @@ func (ps *PredefinedScenarios) GetComprehensiveScenarios(modelPaths map[ModelTyp
 }
 
 // GetQuickScenarios returns a smaller set for quick testing
-func (ps *PredefinedScenarios) GetQuickScenarios(modelPaths map[ModelType]string) *ScenarioSet {
+func (ps *PredefinedScenarios) GetQuickScenarios(models []model.Config) *ScenarioSet {
 	scenarios := make([]Scenario, 0)
 
 	// Quick test with common configurations
-	commonResolutions := []Resolution{
-		{Width: 416, Height: 416, Name: "416x416"},
-		{Width: 640, Height: 640, Name: "640x640"},
+	commonResolutions := []images.Resolution{
+		images.Resolutions[images.ResolutionAlias1MP],
+		images.Resolutions[images.ResolutionAlias4MP],
 	}
 
-	for modelType, modelPath := range modelPaths {
+	for _, model := range models {
 		for _, resolution := range commonResolutions {
 			// Test only JPEG for quick scenarios
-			scenario := NewScenarioBuilder(fmt.Sprintf("quick_%s_%s", modelType, resolution.Name)).
-				WithModel(modelType, modelPath).
+			scenario := NewScenarioBuilder(fmt.Sprintf("quick_%s_%s", model.Family, resolution.Alias)).
+				WithModel(model).
 				WithResolution(resolution.Width, resolution.Height).
 				WithImageFormat(images.FormatJPEG).
 				WithIterations(50).
@@ -161,14 +162,14 @@ func (ps *PredefinedScenarios) GetQuickScenarios(modelPaths map[ModelType]string
 }
 
 // GetResolutionComparisonScenarios tests different resolutions with the same model
-func (ps *PredefinedScenarios) GetResolutionComparisonScenarios(modelType ModelType, modelPath string) *ScenarioSet {
+func (ps *PredefinedScenarios) GetResolutionComparisonScenarios(model model.Config) *ScenarioSet {
 	scenarios := make([]Scenario, 0)
 
-	for _, resolution := range images.GetAllResolutions() {
-		scenario := NewScenarioBuilder(fmt.Sprintf("resolution_%s_%s", modelType, resolution.Alias)).
-			WithModel(modelType, modelPath).
+	for _, resolution := range images.Resolutions {
+		scenario := NewScenarioBuilder(fmt.Sprintf("resolution_%s_%s", model.Family, resolution.Alias)).
+			WithModel(model).
 			WithResolution(resolution.Pixels.Width, resolution.Pixels.Height).
-			WithImageFormat(images.FormatJPEG). // Use consistent format
+			WithImageFormat(images.FormatJPEG).
 			WithIterations(100).
 			WithWarmupRuns(10).
 			Build()
@@ -177,20 +178,25 @@ func (ps *PredefinedScenarios) GetResolutionComparisonScenarios(modelType ModelT
 	}
 
 	return &ScenarioSet{
-		Name:        fmt.Sprintf("Resolution Comparison - %s", modelType),
-		Description: fmt.Sprintf("Compares different input resolutions for %s model", modelType),
+		Name:        fmt.Sprintf("Resolution Comparison - %s", model.Family),
+		Description: fmt.Sprintf("Compares different input resolutions for %s model", model.Family),
 		Scenarios:   scenarios,
 	}
 }
 
 // GetFormatComparisonScenarios tests different image formats with the same model and resolution
-func (ps *PredefinedScenarios) GetFormatComparisonScenarios(modelType ModelType, modelPath string, resolution Resolution) *ScenarioSet {
+func (ps *PredefinedScenarios) GetFormatComparisonScenarios(
+	model model.Config,
+	resolution images.Resolution,
+) *ScenarioSet {
 	scenarios := make([]Scenario, 0)
 
 	formats := []images.ImageFormat{images.FormatJPEG, images.FormatWebP, images.FormatPNG}
 	for _, format := range formats {
-		scenario := NewScenarioBuilder(fmt.Sprintf("format_%s_%s_%s", modelType, resolution.Name, format)).
-			WithModel(modelType, modelPath).
+		scenario := NewScenarioBuilder(
+			fmt.Sprintf("format_%s_%s_%s", model.Family, resolution.Alias, format),
+		).
+			WithModel(model).
 			WithResolution(resolution.Width, resolution.Height).
 			WithImageFormat(format).
 			WithIterations(100).
@@ -201,19 +207,29 @@ func (ps *PredefinedScenarios) GetFormatComparisonScenarios(modelType ModelType,
 	}
 
 	return &ScenarioSet{
-		Name:        fmt.Sprintf("Format Comparison - %s @ %s", modelType, resolution.Name),
-		Description: fmt.Sprintf("Compares different image formats for %s model at %s resolution", modelType, resolution.Name),
-		Scenarios:   scenarios,
+		Name: fmt.Sprintf("Format Comparison - %s @ %s", model.Family, resolution.Alias),
+		Description: fmt.Sprintf(
+			"Compares different image formats for %s model at %s resolution",
+			model.Family,
+			resolution.Alias,
+		),
+		Scenarios: scenarios,
 	}
 }
 
 // GetModelComparisonScenarios compares different models with the same configuration
-func (ps *PredefinedScenarios) GetModelComparisonScenarios(modelPaths map[ModelType]string, resolution Resolution, format images.ImageFormat) *ScenarioSet {
+func (ps *PredefinedScenarios) GetModelComparisonScenarios(
+	models []model.Config,
+	resolution images.Resolution,
+	format images.ImageFormat,
+) *ScenarioSet {
 	scenarios := make([]Scenario, 0)
 
-	for modelType, modelPath := range modelPaths {
-		scenario := NewScenarioBuilder(fmt.Sprintf("model_%s_%s_%s", modelType, resolution.Name, format)).
-			WithModel(modelType, modelPath).
+	for _, model := range models {
+		scenario := NewScenarioBuilder(
+			fmt.Sprintf("model_%s_%s_%s", model.Family, resolution.Alias, format),
+		).
+			WithModel(model).
 			WithResolution(resolution.Width, resolution.Height).
 			WithImageFormat(format).
 			WithIterations(100).
@@ -224,9 +240,13 @@ func (ps *PredefinedScenarios) GetModelComparisonScenarios(modelPaths map[ModelT
 	}
 
 	return &ScenarioSet{
-		Name:        fmt.Sprintf("Model Comparison @ %s %s", resolution.Name, format),
-		Description: fmt.Sprintf("Compares different models at %s resolution with %s format", resolution.Name, format),
-		Scenarios:   scenarios,
+		Name: fmt.Sprintf("Model Comparison @ %s %s", resolution.Alias, format),
+		Description: fmt.Sprintf(
+			"Compares different models at %s resolution with %s format",
+			resolution.Alias,
+			format,
+		),
+		Scenarios: scenarios,
 	}
 }
 

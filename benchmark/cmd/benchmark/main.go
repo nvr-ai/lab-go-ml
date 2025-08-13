@@ -10,7 +10,8 @@ import (
 	"time"
 
 	"github.com/nvr-ai/go-ml/benchmark"
-	"github.com/nvr-ai/go-ml/benchmark/engines"
+	"github.com/nvr-ai/go-ml/inference"
+	"github.com/nvr-ai/go-ml/models/model"
 )
 
 func main() {
@@ -39,7 +40,10 @@ func main() {
 	}
 
 	// Create benchmark suite
-	suite := benchmark.NewSuite(engine, *outputDir)
+	suite := benchmark.NewSuite(benchmark.NewSuiteArgs{
+		OutputPath: *outputDir,
+		Engine:     inference.EngineONNX,
+	})
 
 	// Load configuration if provided
 	var config *benchmark.Config
@@ -62,15 +66,15 @@ func main() {
 
 	// Generate scenarios based on flags
 	predefined := &benchmark.PredefinedScenarios{}
-	modelPaths := make(map[benchmark.ModelType]string)
+	modelPaths := make(map[model.Family]string)
 
 	// Convert string map to ModelType map
 	for key, path := range config.ModelPaths {
 		switch key {
 		case "yolo":
-			modelPaths[benchmark.ModelYOLO] = path
+			modelPaths[model.ModelFamilyYOLO] = path
 		case "d-fine", "dfine":
-			modelPaths[benchmark.ModelDFine] = path
+			modelPaths[model.ModelFamilyCOCO] = path
 		}
 	}
 
@@ -182,8 +186,20 @@ func init() {
 		fmt.Fprintf(os.Stderr, "Options:\n")
 		flag.PrintDefaults()
 		fmt.Fprintf(os.Stderr, "\nExamples:\n")
-		fmt.Fprintf(os.Stderr, "  %s -images ./test_images -model ./yolov8n.onnx -quick\n", filepath.Base(os.Args[0]))
-		fmt.Fprintf(os.Stderr, "  %s -config ./benchmark_config.json -scenarios ./scenarios.json\n", filepath.Base(os.Args[0]))
-		fmt.Fprintf(os.Stderr, "  %s -images ./test_images -model ./yolov8n.onnx -resolutions -formats\n", filepath.Base(os.Args[0]))
+		fmt.Fprintf(
+			os.Stderr,
+			"  %s -images ./test_images -model ./yolov8n.onnx -quick\n",
+			filepath.Base(os.Args[0]),
+		)
+		fmt.Fprintf(
+			os.Stderr,
+			"  %s -config ./benchmark_config.json -scenarios ./scenarios.json\n",
+			filepath.Base(os.Args[0]),
+		)
+		fmt.Fprintf(
+			os.Stderr,
+			"  %s -images ./test_images -model ./yolov8n.onnx -resolutions -formats\n",
+			filepath.Base(os.Args[0]),
+		)
 	}
 }

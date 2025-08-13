@@ -7,6 +7,7 @@ import (
 
 	"github.com/nvr-ai/go-ml/images"
 	"github.com/nvr-ai/go-ml/inference"
+	"github.com/nvr-ai/go-ml/inference/providers"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -49,7 +50,11 @@ func TestNewBenchmarkSuite(t *testing.T) {
 	engine := &MockInferenceEngine{}
 	outputDir := "./test_output"
 
-	suite := NewSuite(engine, outputDir)
+	suite := NewSuite(NewSuiteArgs{
+		OutputPath: outputDir,
+		Engine:     inference.EngineONNX,
+		Provider:   providers.OpenVINOProviderBackend,
+	})
 
 	assert.NotNil(t, suite)
 	assert.Equal(t, engine, suite.engine)
@@ -73,7 +78,7 @@ func TestScenarioBuilder(t *testing.T) {
 
 	assert.Equal(t, "test_scenario", scenario.Name)
 	assert.Equal(t, ModelYOLO, scenario.ModelType)
-	assert.Equal(t, "./test_model.onnx", scenario.ModelPath)
+	assert.Equal(t, "./test_model.onnx", scenario.Model)
 	assert.Equal(t, 416, scenario.Resolution.Width)
 	assert.Equal(t, 416, scenario.Resolution.Height)
 	assert.Equal(t, images.FormatJPEG, scenario.ImageFormat)

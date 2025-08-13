@@ -35,7 +35,10 @@ func main() {
 	fmt.Printf("Saved %d quick scenarios\n", len(quick.Scenarios))
 
 	// Create resolution comparison scenarios
-	resolutions := predefined.GetResolutionComparisonScenarios(benchmark.ModelYOLO, "../data/yolov8n.onnx")
+	resolutions := predefined.GetResolutionComparisonScenarios(
+		benchmark.ModelYOLO,
+		"../data/yolov8n.onnx",
+	)
 	err = benchmark.SaveScenarioSet(resolutions, "resolution_scenarios.json")
 	if err != nil {
 		log.Fatalf("Failed to save resolution scenarios: %v", err)
@@ -44,7 +47,11 @@ func main() {
 
 	// Create format comparison scenarios
 	resolution416 := benchmark.Resolution{Width: 416, Height: 416, Name: "416x416"}
-	formats := predefined.GetFormatComparisonScenarios(benchmark.ModelYOLO, "../data/yolov8n.onnx", resolution416)
+	formats := predefined.GetFormatComparisonScenarios(
+		benchmark.ModelYOLO,
+		"../data/yolov8n.onnx",
+		resolution416,
+	)
 	err = benchmark.SaveScenarioSet(formats, "format_scenarios.json")
 	if err != nil {
 		log.Fatalf("Failed to save format scenarios: %v", err)

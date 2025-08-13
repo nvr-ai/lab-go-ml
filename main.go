@@ -66,11 +66,21 @@ func main() {
 		imagePath             string
 		showVisualization     bool
 	)
-	flag.DurationVar(&minDuration, "min-duration", DefaultMinMotionDuration, "Minimum motion duration before reporting")
+	flag.DurationVar(
+		&minDuration,
+		"min-duration",
+		DefaultMinMotionDuration,
+		"Minimum motion duration before reporting",
+	)
 	flag.StringVar(&onnxModelPath, "onnx-model", DefaultONNXModelPath, "Path to YOLO ONNX model file")
 	flag.Float64Var(&confidenceThreshold, "confidence", 0.5, "Object detection confidence threshold")
 	flag.StringVar(&outputDir, "output-dir", DefaultOutputDir, "Output directory for saved frames")
-	flag.BoolVar(&enableObjectDetection, "object-detection", true, "Enable object detection verification")
+	flag.BoolVar(
+		&enableObjectDetection,
+		"object-detection",
+		true,
+		"Enable object detection verification",
+	)
 	flag.StringVar(&videoPath, "video", "", "Path to video file (.mp4, .avi, .mov)")
 	flag.StringVar(&imagePath, "image", "", "Path to image file (.jpg, .jpeg, .png, .bmp)")
 	flag.BoolVar(&showVisualization, "show-window", false, "Show visualization window")
@@ -137,7 +147,14 @@ func main() {
 	case InputImage:
 		fmt.Printf("Processing image: %s\n", inputConfig.Path)
 		// For image processing, we'll handle it differently
-		processImage(inputConfig.Path, objectDetector, enableObjectDetection, outputDir, onnxModelPath, confidenceThreshold)
+		processImage(
+			inputConfig.Path,
+			objectDetector,
+			enableObjectDetection,
+			outputDir,
+			onnxModelPath,
+			confidenceThreshold,
+		)
 		return
 	}
 	defer webcam.Close()
@@ -285,7 +302,13 @@ func main() {
 		var relevantObjectsDetected bool
 		var detectedObjects []string
 		if enableObjectDetection && motionDetected && len(motionROIs) > 0 {
-			relevantObjectsDetected, detectedObjects = processMotionROIs(img, motionROIs, objectDetector, frameCounter, outputDir)
+			relevantObjectsDetected, detectedObjects = processMotionROIs(
+				img,
+				motionROIs,
+				objectDetector,
+				frameCounter,
+				outputDir,
+			)
 		}
 
 		// Draw contours and bounding boxes for significant motion.
@@ -316,9 +339,15 @@ func main() {
 
 		// Print performance metrics for each frame with proper type handling
 		processingTimeMs := float64(detector.FrameProcessingTime.Microseconds()) / 1000.0
-		fmt.Printf("[Frame %d] FPS: %.1f | Motion FPS: %.1f | Processing: %.2fms | Motion: %t | Events: %d",
-			frameCounter, detector.CurrentFPS, detector.MotionFPS, processingTimeMs,
-			motionDetected, detector.MotionEventCount)
+		fmt.Printf(
+			"[Frame %d] FPS: %.1f | Motion FPS: %.1f | Processing: %.2fms | Motion: %t | Events: %d",
+			frameCounter,
+			detector.CurrentFPS,
+			detector.MotionFPS,
+			processingTimeMs,
+			motionDetected,
+			detector.MotionEventCount,
+		)
 
 		if motionDetected {
 			fmt.Printf(" | Area: %.0f | ROIs: %d", maxArea, len(motionROIs))
@@ -335,15 +364,39 @@ func main() {
 		fmt.Printf("\n")
 
 		// Draw status information
-		gocv.PutText(&img, status, image.Pt(10, 30), gocv.FontHersheyPlain, 1.2, color.RGBA{0, 0, 255, 0}, 2)
+		gocv.PutText(
+			&img,
+			status,
+			image.Pt(10, 30),
+			gocv.FontHersheyPlain,
+			1.2,
+			color.RGBA{0, 0, 255, 0},
+			2,
+		)
 
 		// Draw FPS information
 		fpsText := fmt.Sprintf("FPS: %.1f | Motion FPS: %.1f", detector.CurrentFPS, detector.MotionFPS)
-		gocv.PutText(&img, fpsText, image.Pt(10, 60), gocv.FontHersheyPlain, 1.2, color.RGBA{255, 255, 255, 0}, 2)
+		gocv.PutText(
+			&img,
+			fpsText,
+			image.Pt(10, 60),
+			gocv.FontHersheyPlain,
+			1.2,
+			color.RGBA{255, 255, 255, 0},
+			2,
+		)
 
 		// Draw motion event count
 		eventText := fmt.Sprintf("Motion Events: %d", detector.MotionEventCount)
-		gocv.PutText(&img, eventText, image.Pt(10, 90), gocv.FontHersheyPlain, 1.2, color.RGBA{255, 255, 255, 0}, 2)
+		gocv.PutText(
+			&img,
+			eventText,
+			image.Pt(10, 90),
+			gocv.FontHersheyPlain,
+			1.2,
+			color.RGBA{255, 255, 255, 0},
+			2,
+		)
 
 		// Draw object detection status
 		if enableObjectDetection {
@@ -353,7 +406,15 @@ func main() {
 				}
 				return "No Relevant Objects"
 			}())
-			gocv.PutText(&img, objText, image.Pt(10, 120), gocv.FontHersheyPlain, 1.2, color.RGBA{0, 255, 0, 0}, 2)
+			gocv.PutText(
+				&img,
+				objText,
+				image.Pt(10, 120),
+				gocv.FontHersheyPlain,
+				1.2,
+				color.RGBA{0, 255, 0, 0},
+				2,
+			)
 		}
 
 		// Show the image
@@ -410,11 +471,21 @@ func validateFile(filePath string, supportedExtensions []string) error {
 		}
 	}
 
-	return fmt.Errorf("unsupported file extension: %s. Supported extensions: %v", ext, supportedExtensions)
+	return fmt.Errorf(
+		"unsupported file extension: %s. Supported extensions: %v",
+		ext,
+		supportedExtensions,
+	)
 }
 
 // processImage processes a single image file
-func processImage(imagePath string, objectDetector *onnx.ONNXDetector, enableObjectDetection bool, outputDir, onnxModelPath string, confidenceThreshold float64) {
+func processImage(
+	imagePath string,
+	objectDetector *onnx.ONNXDetector,
+	enableObjectDetection bool,
+	outputDir, onnxModelPath string,
+	confidenceThreshold float64,
+) {
 	// Load the image
 	img := gocv.IMRead(imagePath, gocv.IMReadColor)
 	if img.Empty() {
@@ -458,7 +529,13 @@ func processImage(imagePath string, objectDetector *onnx.ONNXDetector, enableObj
 }
 
 // processMotionROIs runs object detection on motion regions of interest
-func processMotionROIs(img gocv.Mat, motionROIs []image.Rectangle, detector *onnx.ONNXDetector, frameCounter int, outputDir string) (bool, []string) {
+func processMotionROIs(
+	img gocv.Mat,
+	motionROIs []image.Rectangle,
+	detector *onnx.ONNXDetector,
+	frameCounter int,
+	outputDir string,
+) (bool, []string) {
 	var relevantObjectsDetected bool
 	var detectedObjects []string
 	objectCount := make(map[string]int)
@@ -491,7 +568,15 @@ func processMotionROIs(img gocv.Mat, motionROIs []image.Rectangle, detector *onn
 				// Draw detection box on the image
 				gocv.Rectangle(&img, detection.Box, color.RGBA{0, 255, 0, 0}, 2)
 				label := fmt.Sprintf("%s %.2f", detection.ClassName, detection.Score)
-				gocv.PutText(&img, label, detection.Box.Min, gocv.FontHersheyPlain, 0.8, color.RGBA{0, 255, 0, 0}, 2)
+				gocv.PutText(
+					&img,
+					label,
+					detection.Box.Min,
+					gocv.FontHersheyPlain,
+					0.8,
+					color.RGBA{0, 255, 0, 0},
+					2,
+				)
 			}
 		}
 	}
