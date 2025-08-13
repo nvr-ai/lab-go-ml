@@ -26,19 +26,17 @@ flowchart TD
   input input-feeder-connector@==> image-kernel-artifacts
   input-feeder-connector@{ animation: fast }
 
-  subgraph processing["<br>"]
+  subgraph processing["<br>"]; style processing fill: transparent,stroke: none
     image-kernel-artifacts["Sensor Noise & Artifacts"]@{ shape: braces }
     image-kernel-artifacts:::braces
 
     image-kernel-denoise["Denoise & Enhance"]:::process@{ shape: h-cyl}
     image-kernel-clean["Clean Image"]:::process@{ shape: h-cyl}
   end
-  style processing fill:#FFD600,stroke:none
   
-  subgraph inference["<br>"]
+  subgraph inference["<br>"]; style inference fill: transparent,stroke: none
     object-detection-model["Object Detection Model"]
   end 
-  style inference fill:#43BE1E, stroke:#00C853, stroke-width:4px
 
   image-kernel-artifacts -- "Direct-to-Model<br>(unfiltered pass-through)" --> object-detection-model
   image-kernel-artifacts -- Filtered --> image-kernel-denoise --> image-kernel-clean --> object-detection-model

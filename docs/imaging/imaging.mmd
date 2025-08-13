@@ -1,0 +1,55 @@
+---
+config:
+  theme: redux-dark
+  look: neo
+  fontFamily: Inter
+  themeVariables:
+    lineColor: #E621DF
+title: Image Processing & Detection Pipeline
+---
+flowchart TD
+  input["Raw Camera Stream Feeds"]:::start@{ shape: procs }
+  input input-feeder-connector@==> image-kernel-artifacts
+  input-feeder-connector@{ animation: fast }
+
+  subgraph processing["<br>"]; style processing fill: transparent,stroke: none
+    image-kernel-artifacts["Sensor Noise & Artifacts"]@{ shape: braces }
+    image-kernel-artifacts:::braces
+
+    image-kernel-denoise["Denoise & Enhance"]:::process@{ shape: h-cyl}
+    image-kernel-clean["Clean Image"]:::process@{ shape: h-cyl}
+  end
+  
+  subgraph inference["<br>"]; style inference fill: transparent,stroke: none
+    object-detection-model["Object Detection Model"]
+  end 
+
+  image-kernel-artifacts -- "Direct-to-Model<br>(unfiltered pass-through)" --> object-detection-model
+  image-kernel-artifacts -- Filtered --> image-kernel-denoise --> image-kernel-clean --> object-detection-model
+  
+  object-detection-model:::component@{ shape: rounded} -- 
+    <div style="padding: 3px; margin:5px; font-size: 18px; font-weight: 800; color: #06BD83">HIGH</div>
+    <div style="padding: 5px; background: #0DEDA27D">Confidence</div> 
+    --> F("Stable<br>Higher Accuracy Detections"):::good
+
+  object-detection-model:::component@{ shape: rounded} -- 
+    <div style="padding: 3px; margin:5px; font-size: 18px; font-weight: 800; color: #FF1B58">LOW</div>
+    <div style="padding: 5px; background: #F70F4DC6">Confidence</div> 
+    --> H("Noisy<br>Lower Accuracy Detections"):::poor
+  
+
+
+
+
+  n1@{ icon: "azure:integration-environments", form: "rounded", pos: "b"}
+  n1["Sample Labelasd fasdf"]
+  style n1 stroke:#FFD600, stroke-width:px
+
+
+
+  classDef start stroke-width: 3px, stroke:#6F2DFF, fill:#FA00BF16, color:#BED1E1, font-size: 20px, font-weight: 500
+  classDef braces stroke-width: 3px, stroke:#29D10B, fill:#000000, color:#BED1E1, font-size: 16px, font-weight: 600
+  classDef process stroke-width:4px, stroke:#1D4ED8, fill:#3B82F6
+  classDef component stroke-width:4px, stroke:#B7FF00, fill:#B7FF0022
+  classDef poor fill:#FF1B9178, stroke:#FF1B91, stroke-width:4px
+  classDef good fill:#2ED79F4D, stroke:#06BD83, stroke-width:4px
