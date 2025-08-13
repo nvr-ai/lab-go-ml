@@ -40,12 +40,16 @@ flowchart TD
   
 
 
-  subgraph inference["Inference"]; style inference fill: #1E2025, stroke:#373B46, stroke-width: 2px
+  subgraph inference["<br>"]; style inference fill: #1E2025, stroke:#373B46, stroke-width: 2px
+
+    inference-pipeline["Inference Pipeline"]@{ shape: braces } --> object-detection-model
+    inference-pipeline:::braces
+
     object-detection-model["Object Detection Model"]
   end 
 
-  image-kernel-artifacts -- "Direct-to-Model<br>(unfiltered pass-through)" --> object-detection-model
-  image-kernel-artifacts -- Filtered --> image-kernel-denoise --> image-kernel-clean --> object-detection-model
+  image-kernel-artifacts -- "Direct-to-Model<br>(unfiltered pass-through)" --> inference-pipeline
+  image-kernel-artifacts -- Filtered --> image-kernel-denoise --> image-kernel-clean --> inference-pipeline
   
   object-detection-model:::component@{ shape: rounded} -- 
     <div style="padding: 3px; margin:5px; font-size: 18px; font-weight: 800; color: #06BD83">HIGH</div>
@@ -68,7 +72,7 @@ flowchart TD
 
 
   classDef start stroke-width: 3px, stroke:#6F2DFF, fill:#FA00BF16, color:#BED1E1, font-size: 20px, font-weight: 500
-  classDef braces stroke-width: 3px, stroke:#29D10B, fill:#000000, color:#BED1E1, font-size: 16px, font-weight: 600
+  classDef braces stroke-width: 4px, stroke:#29D10B, fill:#CD4545, color:#BED1E1, font-size: 18px, font-weight: 600
   classDef process stroke-width:4px, stroke:#1D4ED8, fill:#3B82F6
   classDef component stroke-width:4px, stroke:#B7FF00, fill:#B7FF0022
   classDef poor fill:#FF1B9178, stroke:#FF1B91, stroke-width:4px
