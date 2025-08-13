@@ -12,6 +12,7 @@ Imagine you're trying to spot a friend in a crowded, dimly-lit concert venue. Th
 Computer vision models face the same challenge, but they can't squint. They process every pixel with mathematical precision, treating sensor noise, compression artifacts, and aliasing as if they were meaningful visual information. This is where a blur kernel becomes your model's "intelligent squint" – a preprocessing step that removes visual noise while preserving the structural information needed for accurate object detection.
 
 ### Image Processing & Detection Pipeline
+
 ```mermaid
 ---
 config:
@@ -78,7 +79,9 @@ flowchart TD
   classDef poor fill:#FF1B9178, stroke:#FF1B91, stroke-width:4px
   classDef good fill:#2ED79F4D, stroke:#06BD83, stroke-width:4px
 ```
+
 asdf
+
 ```mermaid
 ---
 title: "✨ Vision Pipeline: From Raw Feed to Detection"
@@ -178,7 +181,6 @@ flowchart TD
 
 ```
 
-
 ## The Problem: High-Frequency Noise in Real-World Vision
 
 ### What Creates Visual Noise in Detection Pipelines?
@@ -271,15 +273,23 @@ For each subsequent position:
 **Time Complexity**: O(W × H) - constant time per pixel regardless of radius!
 
 ermaid
+
 graph TD
+
 subgraph "Complexity Comparison"
+
 A["Naive 2D: O(W×H×R²)"] --> B["Separable: O(W×H×R)"]
+
 B --> C["Sliding Window: O(W×H)"]
+
 end
 
     subgraph "Performance at 1080p, R=5"
+
         D["Naive: ~50ms"] --> E["Separable: ~10ms"]
+
         E --> F["Sliding Window: ~2ms"]
+
     end
 
     style F fill:#c8e6c9
@@ -368,8 +378,11 @@ fast := FastPixel{R: 128, G: 0, B: 0, A: 128}  // R = 255 * 0.5
 ## Model-Specific Configuration Guide
 
 Different detection architectures have varying sensitivities to blur. Here's how to choose the right settings:
+
 mermaid
+
 graph TD
+
 A["Choose Your Model Architecture"] --> B{"Model Type?"}
 
 B -->|Transformer + Attention| C["Radius: 0<br/>Reason: Attention relies on<br/>precise spatial detail"]
@@ -381,11 +394,14 @@ B -->|Two-Stage R-CNN| E["Radius: 1-2<br/>Reason: Multi-scale features<br/>toler
     B -->|Custom/Unknown| F["Start with 1, measure<br/>small-object AP"]
 
     style C fill:#fff3e0
+
     style D fill:#e8f5e8
+
     style E fill:#e3f2fd
+
     style F fill:#f3e5f5
 
-````
+```
 
 
 ### Detailed Model Analysis
@@ -447,7 +463,7 @@ h TD
     style E fill:#c8e6c9
     style F fill:#e8f5e8
     style G fill:#ffcdd2
-````
+```
 
 ### Edge Mode Implementation Details
 
@@ -1201,6 +1217,7 @@ Key takeaways for production deployment:
 5. **Test thoroughly**: Validate correctness across different image formats and boundary conditions
 
 The implementation provided here offers a solid foundation for incorporating blur preprocessing into object detection pipelines, with the flexibility to adapt to specific performance requirements and model architectures. As computer vision continues to move toward real-time
+
 applications, this type of careful preprocessing optimization becomes increasingly valuable for maintaining both accuracy and efficiency.
 
 Remember that blur is just one tool in the preprocessing toolkit. The most effective detection pipelines combine multiple preprocessing techniques, careful data augmentation, and model-specific optimizations to achieve robust performance across diverse real-world conditions.
