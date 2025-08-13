@@ -29,7 +29,7 @@ flowchart TD
   input input-feeder-connector@==> image-kernel-artifacts
   input-feeder-connector@{ animation: fast }
 
-  subgraph processing["<br>"]; style processing fill: transparent, stroke:#00C853, stroke-width: 3px
+  subgraph processing["<br>"]; style processing fill: #1E2025, stroke:#373B46, stroke-width: 2px
 
     image-kernel-artifacts["Sensor Noise & Artifacts"]@{ shape: braces }
     image-kernel-artifacts:::braces
@@ -40,7 +40,7 @@ flowchart TD
   
 
 
-  subgraph inference["<br>"]; style inference fill: transparent,stroke: none
+  subgraph inference["Inference"]; style inference fill: #1E2025, stroke:#373B46, stroke-width: 2px
     object-detection-model["Object Detection Model"]
   end 
 
