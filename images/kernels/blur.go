@@ -57,6 +57,8 @@ func (p *Pool) PutRGBA(img *image.RGBA) {
 // - Avoids float math and per-sample function calls in hot loops.
 // - Correctly accounts for non-zero image bounds.
 //
+// TODO: add a version that operates on image.NRGBA
+//
 // Performance: O(W*H) per pass, independent of Radius (excluding small edge regions).
 // Quality: Lower than Gaussian; for better quality at similar speed, consider
 //

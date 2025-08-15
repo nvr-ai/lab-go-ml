@@ -14,34 +14,32 @@ Computer vision models face the same challenge, but they can't squint. They proc
 ### Image Processing & Detection Pipeline
 
 ```mermaid
----
-config:
-  theme: redux-dark
-  look: neo
-  fontFamily: Inter
-  themeVariables:
-    primaryTextColor: "#C4C7D7"
-    lineColor: "#EC0BEC"
-    edgeLabelBackground: "#434F6308"
-    clusterBkg: "#00000008"
----
+
 flowchart TD
-  input["Raw Camera Stream Feeds"]:::start@{ shape: procs }
+  input[
+    <div style="font-size: 15px; font-weight: 500; color: #7D88A6">5-20~ FPS @ 1MP-4K+</div>
+    <div style="font-size: 18px; font-weight: 800; color: #0AE29D">Frame Receivers</div>
+  ]:::start@{ shape: procs }
   input input-feeder-connector@==> image-kernel-artifacts
   input-feeder-connector@{ animation: fast }
 
-  subgraph processing["<br>"]; style processing fill: #1E2025, stroke:#373B46, stroke-width: 2px
-
+  subgraph processing["<br>"]; style processing fill: #18191DBC, stroke:#373B46, stroke-width: 2px
     image-kernel-artifacts["Sensor Noise & Artifacts"]@{ shape: braces }
     image-kernel-artifacts:::braces
 
     image-kernel-denoise["Denoise & Enhance"]:::process@{ shape: h-cyl}
     image-kernel-clean["Clean Image"]:::process@{ shape: h-cyl}
   end
-  
 
+  subgraph pipeline-pre-processing["Preprocessing Pipeline Details"]; style pipeline-pre-processing fill: #18191DBC, stroke:#373B46, stroke-width: 2px
+    pipeline-pre-processing-input["Sensor Noise & Artifacts"]@{ shape: braces }
+    pipeline-pre-processing-input:::braces --> pipeline-pre-processing-blur-kernel
+    pipeline-pre-processing-blur-kernel["Blur Kernel"]@{ shape: h-cyl}
+    pipeline-pre-processing-blur-kernel:::process@{ shape: h-cyl}
+    pipeline-pre-processing-blur-kernel --> pipeline-pre-processing-clean-image
+  end
 
-  subgraph inference["<br>"]; style inference fill: #1E2025, stroke:#373B46, stroke-width: 2px
+  subgraph inference["<br>"]; style inference fill: #18191DBC, stroke:#373B46, stroke-width: 2px
 
     inference-pipeline["Inference Pipeline"]@{ shape: braces } --> object-detection-model
     inference-pipeline:::braces
@@ -49,28 +47,30 @@ flowchart TD
     object-detection-model["Object Detection Model"]
   end 
 
-  image-kernel-artifacts -- "Direct-to-Model<br>(unfiltered pass-through)" --> inference-pipeline
+  image-kernel-artifacts -- 
+    <div style="font-size: 17px; font-weight: 700; color: #BED1E1">
+        Direct-to-Model
+    </div>
+    <div style="font-size: 15px; font-weight: 400; color: #7D88A6">
+        (unfiltered pass-through)
+    </div> 
+  --> inference-pipeline
+  
   image-kernel-artifacts -- Filtered --> image-kernel-denoise --> image-kernel-clean --> inference-pipeline
   
   object-detection-model:::component@{ shape: rounded} -- 
-    <div style="padding: 3px; margin:5px; font-size: 18px; font-weight: 800; color: #06BD83">HIGH</div>
-    <div style="padding: 5px; background: #0DEDA27D">Confidence</div> 
+    <div style="padding: 3px; margin:5px; color: #06BD83 !important;">Confidence</div>
+    <div style="padding: 5px; background: #0DEDA27D !important; font-size: 18px; font-weight: 800; color: #fff !important;">HIGH</div> 
     --> F("Stable<br>Higher Accuracy Detections"):::good
 
   object-detection-model:::component@{ shape: rounded} -- 
-    <div style="padding: 3px; margin:5px; font-size: 18px; font-weight: 800; color: #FF1B58">LOW</div>
-    <div style="padding: 5px; background: #F70F4DC6">Confidence</div> 
+    <div style="padding: 3px; margin:5px; color: #FF1B58 !important;">Confidence</div>
+    <div style="padding: 5px; background: #F70F4DC6 !important; font-size: 18px; font-weight: 800; color: #fff !important;">LOW</div> 
     --> H("Noisy<br>Lower Accuracy Detections"):::poor
-  
-
-
-
 
   n1@{ icon: "azure:integration-environments", form: "rounded", pos: "b"}
   n1["Sample Labelasd fasdf"]
   style n1 stroke:#FFD600, stroke-width:0px
-
-
 
   classDef start stroke-width: 3px, stroke:#6F2DFF, fill:#FA00BF16, color:#BED1E1, font-size: 20px, font-weight: 500
   classDef braces stroke-width: 4px, stroke:#29D10B, fill:#CD4545, color:#BED1E1, font-size: 18px, font-weight: 600
@@ -187,10 +187,10 @@ flowchart TD
 
 Real-world images contain unwanted high-frequency content that confuses detection models:
 
-1. **Sensor grain**: Digital noise from camera sensors, especially in low light
-2. **Compression artifacts**: JPEG ringing, H.264 mosquito noise
-3. **Aliasing**: High-frequency patterns that create false edges during resizing
-4. **Temporal inconsistencies**: Frame-to-frame variations in compressed video
+1) **Sensor grain**: Digital noise from camera sensors, especially in low light
+2) **Compression artifacts**: JPEG ringing, H.264 mosquito noise
+3) **Aliasing**: High-frequency patterns that create false edges during resizing
+4) **Temporal inconsistencies**: Frame-to-frame variations in compressed video
 
 ### The Detection Model's Dilemma
 
@@ -220,10 +220,10 @@ graph LR
 
 Not all blur operations are created equal. For object detection, we need:
 
-- **Controllable strength**: Adjustable radius for different noise levels
-- **Computational efficiency**: Real-time performance at video frame rates
-- **Boundary preservation**: Careful handling of image edges
-- **Numerical stability**: Consistent results across different input ranges
++ **Controllable strength**: Adjustable radius for different noise levels
++ **Computational efficiency**: Real-time performance at video frame rates
++ **Boundary preservation**: Careful handling of image edges
++ **Numerical stability**: Consistent results across different input ranges
 
 ### The Mathematics: From Naive to Optimal
 
@@ -371,9 +371,9 @@ fast := FastPixel{R: 128, G: 0, B: 0, A: 128}  // R = 255 * 0.5
 
 **Benefits of premultiplied alpha**:
 
-- No per-pixel divisions during blending
-- Integer-only arithmetic throughout the pipeline
-- Single quantization step reduces cumulative errors
++ No per-pixel divisions during blending
++ Integer-only arithmetic throughout the pipeline
++ Single quantization step reduces cumulative errors
 
 ## Model-Specific Configuration Guide
 
@@ -518,8 +518,8 @@ subgraph "With Pool (Optimized)"
 
 **Example Performance Impact at 4K@60fps**:
 
-- Without pooling: ~240MB/second allocation, frequent GC pauses
-- With pooling: Zero steady-state allocations after warmup
++ Without pooling: ~240MB/second allocation, frequent GC pauses
++ With pooling: Zero steady-state allocations after warmup
 
 ### Parallel Execution Strategy
 
@@ -1083,9 +1083,9 @@ educed Small Object Detection
 
 **Solution**:
 
-1. Reduce blur radius by 1
-2. Apply blur only to specific image regions
-3. Use selective blur based on noise analysis
+1) Reduce blur radius by 1
+2) Apply blur only to specific image regions
+3) Use selective blur based on noise analysis
 
 ```go
 // selectiveBlur applies blur only to high-noise regions.
@@ -1110,9 +1110,9 @@ func selectiveBlur(src *image.RGBA, noiseMap []float32, threshold float32, radiu
 
 **Investigation Steps**:
 
-1. Profile memory allocation patterns
-2. Check for cache misses with large radii
-3. Verify parallel execution scaling
+1) Profile memory allocation patterns
+2) Check for cache misses with large radii
+3) Verify parallel execution scaling
 
 ```go
 // profileMemoryUsage analyzes allocation patterns during blur operations.
@@ -1210,11 +1210,11 @@ The blur kernel serves as a critical preprocessing component that bridges the ga
 
 Key takeaways for production deployment:
 
-1. **Start conservative**: Begin with radius 1 for most models, 0 for attention-based architectures
-2. **Measure everything**: Track both accuracy metrics and performance characteristics
-3. **Optimize incrementally**: Use buffer pooling and parallel execution for high-throughput scenarios
-4. **Handle edges explicitly**: Choose appropriate edge modes for your specific use case
-5. **Test thoroughly**: Validate correctness across different image formats and boundary conditions
+1) **Start conservative**: Begin with radius 1 for most models, 0 for attention-based architectures
+2) **Measure everything**: Track both accuracy metrics and performance characteristics
+3) **Optimize incrementally**: Use buffer pooling and parallel execution for high-throughput scenarios
+4) **Handle edges explicitly**: Choose appropriate edge modes for your specific use case
+5) **Test thoroughly**: Validate correctness across different image formats and boundary conditions
 
 The implementation provided here offers a solid foundation for incorporating blur preprocessing into object detection pipelines, with the flexibility to adapt to specific performance requirements and model architectures. As computer vision continues to move toward real-time
 

@@ -296,6 +296,7 @@ flowchart TD
   classDef return stroke-width:3px, stroke:#46EDC8, fill:#DEFFF8, color:#378E7A
   classDef decision stroke:#FF9800, stroke-width:2px, fill:#FFF3E0, color:#1F1F1F
 
+
   subgraph preprocessing_detail["Preprocessing Pipeline Details"]
     
     input_image@{label: "<b>image.Image</b><br>1920×1080 RGB"}
